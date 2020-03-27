@@ -18,11 +18,11 @@ public enum SnodeAPI {
 
     // MARK: Settings
     private static let apiVersion = "v1"
-    private static let minimumSnodeCount = 2
-    private static let targetSnodeCount = 3
+    private static let minimumSnodeCount: UInt = 2
+    private static let targetSnodeCount: UInt = 3
     private static let timeout: TimeInterval = 20
 
-    fileprivate static let failureThreshold = 2
+    fileprivate static let failureThreshold: UInt = 2
 
     internal static let maxRetryCount: UInt = 8
     internal static var powDifficulty: UInt = 1
@@ -89,15 +89,15 @@ public enum SnodeAPI {
             request.timeoutInterval = timeout
             let task = urlSession.dataTask(with: request) { data, response, error in
                 guard let data = data else {
-                    print("[Session Core] \(verb) request to \(url) failed.")
+                    SCLog("\(verb) request to \(url) failed.")
                     return seal.reject(Error.generic)
                 }
                 if let error = error {
-                    print("[Session Core] \(verb) request to \(url) failed due to error: \(error).")
+                    SCLog("\(verb) request to \(url) failed due to error: \(error).")
                     return seal.reject(error)
                 }
                 guard let json = try? JSONSerialization.jsonObject(with: data, options: []) else {
-                    print("[Session Core] Couldn't deserialize JSON returned by \(verb) request to \(url).")
+                    SCLog("Couldn't deserialize JSON returned by \(verb) request to \(url).")
                     return seal.reject(Error.jsonDecodingFailed)
                 }
                 seal.fulfill(json)
@@ -109,7 +109,7 @@ public enum SnodeAPI {
     // MARK: Internal API
     internal static func invoke(_ method: Snode.Method, on snode: Snode, associatedWith hexEncodedPublicKey: String, parameters: JSON) -> RawResponsePromise {
         let url = "\(snode.address):\(snode.port)/storage_rpc/\(apiVersion)"
-        print("[Session Core] Invoking \(method.rawValue) on \(snode) with \(parameters.prettifiedDescription).")
+        SCLog("Invoking \(method.rawValue) on \(snode) with \(parameters.prettifiedDescription).")
         let parameters: JSON = [ "method" : method.rawValue, "params" : parameters ]
         return execute(.post, url, parameters: parameters).handlingSnodeSpecificErrorsIfNeeded(for: snode, associatedWith: hexEncodedPublicKey)
     }
@@ -131,11 +131,11 @@ public enum SnodeAPI {
                     let rawSnodes = intermediate["service_node_states"] as? [JSON] else { throw Error.snodePoolUpdatingFailed }
                 snodePool = Set(rawSnodes.compactMap { rawSnode in
                     guard let address = rawSnode["public_ip"] as? String, let port = rawSnode["storage_port"] as? Int else {
-                        print("[Session Core] Failed to parse snode from: \(rawSnode).")
+                        SCLog("Failed to parse snode from: \(rawSnode).")
                         return nil
                     }
                     guard address != "0.0.0.0" else {
-                        print("[Session Core] Failed to parse snode from: \(rawSnode).")
+                        SCLog("Failed to parse snode from: \(rawSnode).")
                         return nil
                     }
                     return Snode(address: "https://\(address)", port: UInt16(port))
@@ -163,16 +163,16 @@ public enum SnodeAPI {
                 // invoking get_service_nodes on a seed node, so unfortunately the parsing code below can't easily
                 //  be unified with the parsing code in getRandomSnode()
                 guard let json = rawResponse as? JSON, let rawSnodes = json["snodes"] as? [JSON] else {
-                    print("[Session Core] Failed to parse snodes from: \(rawResponse).")
+                    SCLog("Failed to parse snodes from: \(rawResponse).")
                     return []
                 }
                 let swarm: Set<Snode> = Set(rawSnodes.compactMap { rawSnode in
                     guard let address = rawSnode["ip"] as? String, let portAsString = rawSnode["port"] as? String, let port = UInt16(portAsString) else {
-                        print("[Session Core] Failed to parse snode from: \(rawSnode).")
+                        SCLog("Failed to parse snode from: \(rawSnode).")
                         return nil
                     }
                     guard address != "0.0.0.0" else {
-                        print("[Session Core] Failed to parse snode from: \(rawSnode).")
+                        SCLog("Failed to parse snode from: \(rawSnode).")
                         return nil
                     }
                     return Snode(address: "https://\(address)", port: port)
@@ -185,7 +185,7 @@ public enum SnodeAPI {
 
     internal static func getTargetSnodes(for hexEncodedPublicKey: String) -> Promise<Set<Snode>> {
         // shuffled() uses the system's default random generator, which is cryptographically secure
-        return getSwarm(for: hexEncodedPublicKey).map(on: workQueue) { Set($0.shuffled().prefix(targetSnodeCount)) }
+        return getSwarm(for: hexEncodedPublicKey).map(on: workQueue) { Set($0.shuffled().prefix(Int(targetSnodeCount))) }
     }
 
     internal static func dropSnodeIfNeeded(_ snode: Snode, associatedWith hexEncodedPublicKey: String) {
@@ -214,10 +214,10 @@ public enum SnodeAPI {
                     return invoke(.sendMessage, on: snode, associatedWith: destination, parameters: parameters).map(on: workQueue) { rawResponse in
                         if let json = rawResponse as? JSON, let powDifficulty = json["difficulty"] as? Int {
                             guard powDifficulty != SnodeAPI.powDifficulty else { return rawResponse }
-                            print("[Session Core] Setting proof of work difficulty to \(powDifficulty).")
+                            SCLog("Setting proof of work difficulty to \(powDifficulty).")
                             SnodeAPI.powDifficulty = UInt(powDifficulty)
                         } else {
-                            print("[Session Core] Failed to update proof of work difficulty from: \(rawResponse).")
+                            SCLog("Failed to update proof of work difficulty from: \(rawResponse).")
                         }
                         return rawResponse
                     }
@@ -239,27 +239,27 @@ internal extension Promise {
                 let oldFailureCount = SnodeAPI.failureCount[snode] ?? 0
                 let newFailureCount = oldFailureCount + 1
                 SnodeAPI.failureCount[snode] = newFailureCount
-                print("[Session Core] Couldn't reach snode at: \(snode); setting failure count to \(newFailureCount).")
+                SCLog("Couldn't reach snode at: \(snode); setting failure count to \(newFailureCount).")
                 if newFailureCount >= SnodeAPI.failureThreshold {
-                    print("[Session Core] Failure threshold reached for: \(snode); dropping it.")
+                    SCLog("Failure threshold reached for: \(snode); dropping it.")
                     SnodeAPI.dropSnodeIfNeeded(snode, associatedWith: hexEncodedPublicKey) // Remove it from the swarm cache associated with the given public key
                     SnodeAPI.snodePool.remove(snode) // Remove it from the random snode pool
                     SnodeAPI.failureCount[snode] = 0
                 }
             case 406:
-                print("[Session Core] The user's clock is out of sync with the service node network.")
+                SCLog("The user's clock is out of sync with the service node network.")
                 throw SnodeAPI.Error.clockOutOfSync
             case 421:
                 // The snode isn't associated with the given public key anymore
-                print("[Session Core] Invalidating swarm for: \(hexEncodedPublicKey).")
+                SCLog("Invalidating swarm for: \(hexEncodedPublicKey).")
                 SnodeAPI.dropSnodeIfNeeded(snode, associatedWith: hexEncodedPublicKey)
             case 432:
                 // The proof of work difficulty is too low
 //                if case LokiHTTPClient.HTTPError.networkError(_, let result, _) = error, let json = result as? JSON, let powDifficulty = json["difficulty"] as? Int {
-//                    print("[Session Core] Setting proof of work difficulty to \(powDifficulty).")
+//                    SCLog("Setting proof of work difficulty to \(powDifficulty).")
 //                    SnodeAPI.powDifficulty = UInt(powDifficulty)
 //                } else {
-                    print("[Session Core] Failed to update proof of work difficulty.")
+                    SCLog("Failed to update proof of work difficulty.")
 //                }
                 break
             default: break
