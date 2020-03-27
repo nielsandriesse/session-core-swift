@@ -1,6 +1,7 @@
 import PromiseKit
 
 // TODO: Make snodePool, swarmCache and powDifficulty thread safe?
+// TODO: Onion routing
 
 public enum SnodeAPI {
     private static let urlSessionDelegate = URLSessionDelegateImplementation()
