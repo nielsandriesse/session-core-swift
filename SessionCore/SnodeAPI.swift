@@ -25,7 +25,7 @@ public enum SnodeAPI {
 
     fileprivate static let failureThreshold: UInt = 2
 
-    internal static let maxRetryCount: UInt = 8
+    internal static let maxRetryCount: UInt = 4
     internal static var powDifficulty: UInt = 1
 
     // MARK: Type Aliases
@@ -51,22 +51,22 @@ public enum SnodeAPI {
     // MARK: Error
     public enum Error : LocalizedError {
         case proofOfWorkCalculationFailed
-        case messageConversionFailed
         case clockOutOfSync
         case snodePoolUpdatingFailed
         case jsonEncodingFailed
         case jsonDecodingFailed
+        case httpRequestFailed(statusCode: UInt)
         case generic
 
         public var errorDescription: String? {
             switch self {
-                case .proofOfWorkCalculationFailed: return "Failed to calculate proof of work."
-                case .messageConversionFailed: return "Failed to construct message."
-                case .clockOutOfSync: return "Your clock is out of sync with the service node network."
-                case .snodePoolUpdatingFailed: return "Failed to update service node pool."
-                case .jsonEncodingFailed: return "Failed to encode JSON."
-                case .jsonDecodingFailed: return "Failed to decode JSON."
-                case .generic: return "An error occurred."
+            case .proofOfWorkCalculationFailed: return "Failed to calculate proof of work."
+            case .clockOutOfSync: return "Your clock is out of sync with the service node network."
+            case .snodePoolUpdatingFailed: return "Failed to update service node pool."
+            case .jsonEncodingFailed: return "Failed to encode JSON."
+            case .jsonDecodingFailed: return "Failed to decode JSON."
+            case .httpRequestFailed(let statusCode): return "HTTP request failed with status code: \(statusCode)"
+            case .generic: return "An error occurred."
             }
         }
     }
@@ -89,16 +89,21 @@ public enum SnodeAPI {
             }
             request.timeoutInterval = timeout
             let task = urlSession.dataTask(with: request) { data, response, error in
-                guard let data = data else {
-                    SCLog("\(verb) request to \(url) failed.")
+                guard let data = data, let response = response as? HTTPURLResponse else {
+                    SCLog("\(verb.rawValue) request to \(url) failed.")
                     return seal.reject(Error.generic)
                 }
                 if let error = error {
-                    SCLog("\(verb) request to \(url) failed due to error: \(error).")
+                    SCLog("\(verb.rawValue) request to \(url) failed due to error: \(error).")
                     return seal.reject(error)
                 }
+                let statusCode = UInt(response.statusCode)
+                guard 200...299 ~= statusCode else {
+                    SCLog("\(verb.rawValue) request to \(url) failed with status code: \(statusCode).")
+                    return seal.reject(Error.httpRequestFailed(statusCode: statusCode))
+                }
                 guard let json = try? JSONSerialization.jsonObject(with: data, options: []) else {
-                    SCLog("Couldn't deserialize JSON returned by \(verb) request to \(url).")
+                    SCLog("Couldn't deserialize JSON returned by \(verb.rawValue) request to \(url).")
                     return seal.reject(Error.jsonDecodingFailed)
                 }
                 seal.fulfill(json)
@@ -108,11 +113,11 @@ public enum SnodeAPI {
     }
 
     // MARK: Internal API
-    internal static func invoke(_ method: Snode.Method, on snode: Snode, associatedWith hexEncodedPublicKey: String, parameters: JSON) -> RawResponsePromise {
+    internal static func invoke(_ method: Snode.Method, on snode: Snode, associatedWith hexEncodedPublicKey: String, parameters: JSON, headers: [String:String]? = nil) -> RawResponsePromise {
         let url = "\(snode.address):\(snode.port)/storage_rpc/\(apiVersion)"
         SCLog("Invoking \(method.rawValue) on \(snode) with \(parameters.prettifiedDescription).")
         let parameters: JSON = [ "method" : method.rawValue, "params" : parameters ]
-        return execute(.post, url, parameters: parameters).handlingSnodeSpecificErrorsIfNeeded(for: snode, associatedWith: hexEncodedPublicKey)
+        return execute(.post, url, parameters: parameters, headers: headers).handlingSnodeSpecificErrorsIfNeeded(for: snode, associatedWith: hexEncodedPublicKey)
     }
 
     internal static func getRandomSnode() -> Promise<Snode> {
@@ -221,7 +226,7 @@ public enum SnodeAPI {
                             SCLog("Failed to update proof of work difficulty from: \(rawResponse).")
                         }
                         return rawResponse
-                    }
+                    }.retryingIfNeeded(maxRetryCount: maxRetryCount)
                 })
             }.retryingIfNeeded(maxRetryCount: maxRetryCount)
         }
@@ -233,7 +238,7 @@ internal extension Promise {
 
     func handlingSnodeSpecificErrorsIfNeeded(for snode: Snode, associatedWith hexEncodedPublicKey: String) -> Promise<T> {
         return recover(on: SnodeAPI.errorHandlingQueue) { error -> Promise<T> in
-            let statusCode = 0 // TODO: Get from error
+            guard case SnodeAPI.Error.httpRequestFailed(let statusCode) = error else { throw error }
             switch statusCode {
             case 0, 400, 500, 503:
                 // The snode is unreachable
