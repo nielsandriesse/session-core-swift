@@ -2,6 +2,8 @@ import PromiseKit
 @testable import SessionCore
 import XCTest
 
+// TODO: Test error handling
+
 class SessionCoreTests : XCTestCase {
     private let maxRetryCount: UInt = 2 // Be a bit more stringent when testing
     private let mockSessionID = "0501da4723331eb54aaa9a6753a0a59f762103de63f1dc40879cb65a5b5f508814"
