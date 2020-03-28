@@ -20,9 +20,10 @@ public struct Message {
     }
     
     internal func toJSON() -> JSON {
-        var result: JSON = [ "pubKey" : destination, "data" : data.description, "ttl" : ttl ]
+        // The service node API requires the ttl and timestamp to be strings
+        var result: JSON = [ "pubKey" : destination, "data" : data.description, "ttl" : String(ttl) ]
         if let timestamp = timestamp, let nonce = nonce {
-            result["timestamp"] = timestamp
+            result["timestamp"] = String(timestamp)
             result["nonce"] = nonce
         }
         return result

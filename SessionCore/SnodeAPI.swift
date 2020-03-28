@@ -55,7 +55,7 @@ public enum SnodeAPI {
         case snodePoolUpdatingFailed
         case jsonEncodingFailed
         case jsonDecodingFailed
-        case httpRequestFailed(statusCode: UInt)
+        case httpRequestFailed(statusCode: UInt, json: JSON?)
         case generic
 
         public var errorDescription: String? {
@@ -65,7 +65,7 @@ public enum SnodeAPI {
             case .snodePoolUpdatingFailed: return "Failed to update service node pool."
             case .jsonEncodingFailed: return "Failed to encode JSON."
             case .jsonDecodingFailed: return "Failed to decode JSON."
-            case .httpRequestFailed(let statusCode): return "HTTP request failed with status code: \(statusCode)"
+            case .httpRequestFailed(let statusCode, _): return "HTTP request failed with status code: \(statusCode)"
             case .generic: return "An error occurred."
             }
         }
@@ -100,7 +100,8 @@ public enum SnodeAPI {
                 let statusCode = UInt(response.statusCode)
                 guard 200...299 ~= statusCode else {
                     SCLog("\(verb.rawValue) request to \(url) failed with status code: \(statusCode).")
-                    return seal.reject(Error.httpRequestFailed(statusCode: statusCode))
+                    let json = try? JSONSerialization.jsonObject(with: data, options: []) as? JSON
+                    return seal.reject(Error.httpRequestFailed(statusCode: statusCode, json: json))
                 }
                 guard let json = try? JSONSerialization.jsonObject(with: data, options: []) else {
                     SCLog("Couldn't deserialize JSON returned by \(verb.rawValue) request to \(url).")
@@ -238,7 +239,7 @@ internal extension Promise {
 
     func handlingSnodeSpecificErrorsIfNeeded(for snode: Snode, associatedWith hexEncodedPublicKey: String) -> Promise<T> {
         return recover(on: SnodeAPI.errorHandlingQueue) { error -> Promise<T> in
-            guard case SnodeAPI.Error.httpRequestFailed(let statusCode) = error else { throw error }
+            guard case SnodeAPI.Error.httpRequestFailed(let statusCode, let json) = error else { throw error }
             switch statusCode {
             case 0, 400, 500, 503:
                 // The snode is unreachable
@@ -261,12 +262,12 @@ internal extension Promise {
                 SnodeAPI.dropSnodeIfNeeded(snode, associatedWith: hexEncodedPublicKey)
             case 432:
                 // The proof of work difficulty is too low
-//                if case LokiHTTPClient.HTTPError.networkError(_, let result, _) = error, let json = result as? JSON, let powDifficulty = json["difficulty"] as? Int {
-//                    SCLog("Setting proof of work difficulty to \(powDifficulty).")
-//                    SnodeAPI.powDifficulty = UInt(powDifficulty)
-//                } else {
+                if let json = json, let powDifficulty = json["difficulty"] as? Int {
+                    SCLog("Setting proof of work difficulty to \(powDifficulty).")
+                    SnodeAPI.powDifficulty = UInt(powDifficulty)
+                } else {
                     SCLog("Failed to update proof of work difficulty.")
-//                }
+                }
                 break
             default: break
             }
