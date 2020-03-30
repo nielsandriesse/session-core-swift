@@ -119,7 +119,7 @@ public enum SnodeAPI {
         let url = "\(snode.address):\(snode.port)/storage_rpc/\(apiVersion)"
         SCLog("Invoking \(method.rawValue) on \(snode) with \(parameters.prettifiedDescription).")
         let parameters: JSON = [ "method" : method.rawValue, "params" : parameters ]
-        return execute(.post, url, parameters: parameters, headers: headers).handlingSnodeSpecificErrorsIfNeeded(for: snode, associatedWith: hexEncodedPublicKey)
+        return execute(.post, url, parameters: parameters, headers: headers).handlingErrorsIfNeeded(for: snode, associatedWith: hexEncodedPublicKey)
     }
 
     internal static func getRandomSnode() -> Promise<Snode> {
@@ -169,7 +169,7 @@ public enum SnodeAPI {
             }.map(on: workQueue) { rawResponse in
                 // The response returned by invoking get_snodes_for_pubkey on a snode is different from that returned by
                 // invoking get_service_nodes on a seed node, so unfortunately the parsing code below can't easily
-                //  be unified with the parsing code in getRandomSnode()
+                // be unified with the parsing code in getRandomSnode()
                 guard let json = rawResponse as? JSON, let rawSnodes = json["snodes"] as? [JSON] else {
                     SCLog("Failed to parse snodes from: \(rawResponse).")
                     return []
@@ -235,10 +235,10 @@ public enum SnodeAPI {
     }
 }
 
-// MARK: Snode Specific Error Handling
+// MARK: Snode Error Handling
 internal extension Promise {
 
-    func handlingSnodeSpecificErrorsIfNeeded(for snode: Snode, associatedWith hexEncodedPublicKey: String) -> Promise<T> {
+    func handlingErrorsIfNeeded(for snode: Snode, associatedWith hexEncodedPublicKey: String) -> Promise<T> {
         return recover(on: SnodeAPI.errorHandlingQueue) { error -> Promise<T> in
             guard case SnodeAPI.Error.httpRequestFailed(let statusCode, let json) = error else { throw error }
             switch statusCode {
