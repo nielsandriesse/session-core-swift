@@ -44,7 +44,7 @@ public enum SnodeAPI {
     private final class URLSessionDelegateImplementation : NSObject, URLSessionDelegate {
 
         func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
-            // Snode to snode communication uses self-signed certificates, but clients can safely ignore this.
+            // Snode to snode communication uses self-signed certificates but clients can safely ignore this
             completionHandler(.useCredential, URLCredential(trust: challenge.protectionSpace.serverTrust!))
         }
     }
@@ -80,9 +80,10 @@ public enum SnodeAPI {
             request.httpMethod = verb.rawValue
             if let parameters = parameters {
                 do {
+                    guard JSONSerialization.isValidJSONObject(parameters) else { return seal.reject(Error.jsonEncodingFailed) }
                     request.httpBody = try JSONSerialization.data(withJSONObject: parameters)
-                } catch {
-                    seal.reject(Error.jsonEncodingFailed)
+                } catch (let error) {
+                    seal.reject(error)
                 }
             }
             if let headers = headers {
@@ -104,11 +105,13 @@ public enum SnodeAPI {
                     let json = try? JSONSerialization.jsonObject(with: data, options: []) as? JSON
                     return seal.reject(Error.httpRequestFailed(statusCode: statusCode, json: json))
                 }
-                guard let json = try? JSONSerialization.jsonObject(with: data, options: []) else {
+                do {
+                    let json = try JSONSerialization.jsonObject(with: data, options: [])
+                    seal.fulfill(json)
+                } catch (let error) {
                     SCLog("Couldn't deserialize JSON returned by \(verb.rawValue) request to \(url).")
-                    return seal.reject(Error.jsonDecodingFailed)
+                    return seal.reject(error)
                 }
-                seal.fulfill(json)
             }
             task.resume()
         }
