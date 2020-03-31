@@ -5,7 +5,7 @@ import PromiseKit
 
 public enum SnodeAPI {
     private static let urlSessionDelegate = URLSessionDelegateImplementation()
-    private static let urlSession = URLSession(configuration: .default, delegate: urlSessionDelegate, delegateQueue: nil)
+    private static let urlSession = URLSession(configuration: .ephemeral, delegate: urlSessionDelegate, delegateQueue: nil)
 
     /// All snode related errors must be handled on this queue to avoid race conditions maintaining e.g. failure counts.
     fileprivate static let errorHandlingQueue = DispatchQueue(label: "errorHandlingQueue")
