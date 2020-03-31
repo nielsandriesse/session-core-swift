@@ -64,7 +64,7 @@ public enum SnodeAPI {
             case .clockOutOfSync: return "Your clock is out of sync with the service node network."
             case .snodePoolUpdatingFailed: return "Failed to update service node pool."
             case .invalidJSON: return "Invalid JSON."
-            case .httpRequestFailed(let statusCode, _): return "HTTP request failed with status code: \(statusCode)"
+            case .httpRequestFailed(let statusCode, _): return "HTTP request failed with status code: \(statusCode)."
             case .generic: return "An error occurred."
             }
         }
@@ -81,7 +81,7 @@ public enum SnodeAPI {
                     guard JSONSerialization.isValidJSONObject(parameters) else { return seal.reject(Error.invalidJSON) }
                     request.httpBody = try JSONSerialization.data(withJSONObject: parameters)
                 } catch (let error) {
-                    seal.reject(error)
+                    return seal.reject(error)
                 }
             }
             if let headers = headers {
@@ -111,8 +111,8 @@ public enum SnodeAPI {
                     let json = try JSONSerialization.jsonObject(with: data, options: [])
                     seal.fulfill(json)
                 } catch (let error) {
-                    SCLog("Couldn't deserialize JSON returned by \(verb.rawValue) request to \(url).")
-                    return seal.reject(error)
+                    SCLog("Couldn't parse JSON returned by \(verb.rawValue) request to \(url).")
+                    seal.reject(error)
                 }
             }
             task.resume()
