@@ -54,8 +54,7 @@ public enum SnodeAPI {
         case proofOfWorkCalculationFailed
         case clockOutOfSync
         case snodePoolUpdatingFailed
-        case jsonEncodingFailed
-        case jsonDecodingFailed
+        case invalidJSON
         case httpRequestFailed(statusCode: UInt, json: JSON?)
         case generic
 
@@ -64,8 +63,7 @@ public enum SnodeAPI {
             case .proofOfWorkCalculationFailed: return "Failed to calculate proof of work."
             case .clockOutOfSync: return "Your clock is out of sync with the service node network."
             case .snodePoolUpdatingFailed: return "Failed to update service node pool."
-            case .jsonEncodingFailed: return "Failed to encode JSON."
-            case .jsonDecodingFailed: return "Failed to decode JSON."
+            case .invalidJSON: return "Invalid JSON."
             case .httpRequestFailed(let statusCode, _): return "HTTP request failed with status code: \(statusCode)"
             case .generic: return "An error occurred."
             }
@@ -80,7 +78,7 @@ public enum SnodeAPI {
             request.httpMethod = verb.rawValue
             if let parameters = parameters {
                 do {
-                    guard JSONSerialization.isValidJSONObject(parameters) else { return seal.reject(Error.jsonEncodingFailed) }
+                    guard JSONSerialization.isValidJSONObject(parameters) else { return seal.reject(Error.invalidJSON) }
                     request.httpBody = try JSONSerialization.data(withJSONObject: parameters)
                 } catch (let error) {
                     seal.reject(error)
