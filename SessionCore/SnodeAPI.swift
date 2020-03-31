@@ -4,8 +4,8 @@ import PromiseKit
 // TODO: Onion routing
 
 public enum SnodeAPI {
-    private static let urlSessionDelegate = URLSessionDelegateImplementation()
     private static let urlSession = URLSession(configuration: .ephemeral, delegate: urlSessionDelegate, delegateQueue: nil)
+    private static let urlSessionDelegate = URLSessionDelegateImplementation()
 
     /// All snode related errors must be handled on this queue to avoid race conditions maintaining e.g. failure counts.
     fileprivate static let errorHandlingQueue = DispatchQueue(label: "errorHandlingQueue")
@@ -100,10 +100,14 @@ public enum SnodeAPI {
                 let statusCode = UInt(response.statusCode)
                 guard 200...299 ~= statusCode else {
                     SCLog("\(verb.rawValue) request to \(url) failed with status code: \(statusCode).")
-                    let json = try? JSONSerialization.jsonObject(with: data, options: []) as? JSON
+                    var json: JSON? = nil
+                    if JSONSerialization.isValidJSONObject(data) {
+                        json = try? JSONSerialization.jsonObject(with: data, options: []) as? JSON
+                    }
                     return seal.reject(Error.httpRequestFailed(statusCode: statusCode, json: json))
                 }
                 do {
+                    guard JSONSerialization.isValidJSONObject(data) else { return seal.reject(Error.invalidJSON) }
                     let json = try JSONSerialization.jsonObject(with: data, options: [])
                     seal.fulfill(json)
                 } catch (let error) {
