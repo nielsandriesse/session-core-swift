@@ -8,14 +8,14 @@ public enum SnodeAPI {
     private static let urlSessionDelegate = URLSessionDelegateImplementation()
 
     /// All snode related errors must be handled on this queue to avoid race conditions maintaining e.g. failure counts.
-    fileprivate static let errorHandlingQueue = DispatchQueue(label: "errorHandlingQueue")
+    fileprivate static let errorHandlingQueue = DispatchQueue(label: "SnodeAPI.errorHandlingQueue")
     fileprivate static let seedNodePool: Set<String> = [ "http://storage.seed1.loki.network:22023", "http://storage.seed2.loki.network:38157", "http://149.56.148.124:38157" ]
     /// Only ever accessed from `SnodeAPI.errorHandlingQueue` to avoid race conditions.
     fileprivate static var failureCount: [Snode:UInt] = [:]
     fileprivate static var snodePool: Set<Snode> = []
     fileprivate static var swarmCache: [String:Set<Snode>] = [:]
 
-    internal static let workQueue = DispatchQueue(label: "workQueue")
+    internal static let workQueue = DispatchQueue(label: "SnodeAPI.workQueue")
 
     // MARK: Settings
     private static let apiVersion = "v1"
@@ -27,10 +27,6 @@ public enum SnodeAPI {
 
     internal static let maxRetryCount: UInt = 4
     internal static var powDifficulty: UInt = 1
-
-    // MARK: Type Aliases
-    public typealias RawResponse = Any
-    public typealias RawResponsePromise = Promise<RawResponse>
 
     // MARK: HTTP Verb
     private enum HTTPVerb : String {
@@ -71,8 +67,8 @@ public enum SnodeAPI {
     }
 
     // MARK: Private API
-    private static func execute(_ verb: HTTPVerb, _ url: String, parameters: JSON? = nil, headers: [String:String]? = nil) -> RawResponsePromise {
-        return RawResponsePromise { seal in
+    private static func execute(_ verb: HTTPVerb, _ url: String, parameters: JSON? = nil, headers: [String:String]? = nil) -> Promise<JSON> {
+        return Promise<JSON> { seal in
             let url = URL(string: url)!
             var request = URLRequest(url: url)
             request.httpMethod = verb.rawValue
@@ -98,34 +94,30 @@ public enum SnodeAPI {
                     return seal.reject(error)
                 }
                 let statusCode = UInt(response.statusCode)
-                guard 200...299 ~= statusCode else {
-                    var json: JSON? = nil
-                    if let j = try? JSONSerialization.jsonObject(with: data, options: []) as? JSON {
-                        json = j
-                    } else if let result = String(data: data, encoding: .utf8) {
-                        json = [ "result" : result ]
-                    }
-                    let jsonDescription = json?.prettifiedDescription ?? "no debugging info provided"
-                    SCLog("\(verb.rawValue) request to \(url) failed with status code: \(statusCode) (\(jsonDescription)).")
-                    return seal.reject(Error.httpRequestFailed(statusCode: statusCode, json: json))
-                }
-                var json: JSON! = nil
+                var json: JSON? = nil
                 if let j = try? JSONSerialization.jsonObject(with: data, options: []) as? JSON {
                     json = j
                 } else if let result = String(data: data, encoding: .utf8) {
                     json = [ "result" : result ]
+                }
+                guard 200...299 ~= statusCode else {
+                    let jsonDescription = json?.prettifiedDescription ?? "no debugging info provided"
+                    SCLog("\(verb.rawValue) request to \(url) failed with status code: \(statusCode) (\(jsonDescription)).")
+                    return seal.reject(Error.httpRequestFailed(statusCode: statusCode, json: json))
+                }
+                if let json = json {
+                    seal.fulfill(json)
                 } else {
                     SCLog("Couldn't parse JSON returned by \(verb.rawValue) request to \(url).")
                     return seal.reject(Error.invalidJSON)
                 }
-                seal.fulfill(json!)
             }
             task.resume()
         }
     }
 
     // MARK: Internal API
-    internal static func invoke(_ method: Snode.Method, on snode: Snode, associatedWith hexEncodedPublicKey: String, parameters: JSON, headers: [String:String]? = nil) -> RawResponsePromise {
+    internal static func invoke(_ method: Snode.Method, on snode: Snode, associatedWith hexEncodedPublicKey: String, parameters: JSON, headers: [String:String]? = nil) -> Promise<JSON> {
         let url = "\(snode.address):\(snode.port)/storage_rpc/\(apiVersion)"
         SCLog("Invoking \(method.rawValue) on \(snode) with \(parameters.prettifiedDescription).")
         let parameters: JSON = [ "method" : method.rawValue, "params" : parameters ]
@@ -144,8 +136,8 @@ public enum SnodeAPI {
                     "fields" : [ "public_ip" : true, "storage_port" : true ]
                 ]
             ]
-            return execute(.post, url, parameters: parameters).map(on: workQueue) { rawResponse in
-                guard let json = rawResponse as? JSON, let intermediate = json["result"] as? JSON,
+            return execute(.post, url, parameters: parameters).map(on: workQueue) { json in
+                guard let intermediate = json["result"] as? JSON,
                     let rawSnodes = intermediate["service_node_states"] as? [JSON] else { throw Error.snodePoolUpdatingFailed }
                 snodePool = Set(rawSnodes.compactMap { rawSnode in
                     guard let address = rawSnode["public_ip"] as? String, let port = rawSnode["storage_port"] as? Int else {
@@ -176,12 +168,12 @@ public enum SnodeAPI {
             let parameters: JSON = [ "pubKey" : hexEncodedPublicKey ]
             return getRandomSnode().then(on: workQueue) { randomSnode in
                 invoke(.getSwarm, on: randomSnode, associatedWith: hexEncodedPublicKey, parameters: parameters)
-            }.map(on: workQueue) { rawResponse in
+            }.map(on: workQueue) { json in
                 // The response returned by invoking get_snodes_for_pubkey on a snode is different from that returned by
                 // invoking get_service_nodes on a seed node, so unfortunately the parsing code below can't easily
                 // be unified with the parsing code in getRandomSnode()
-                guard let json = rawResponse as? JSON, let rawSnodes = json["snodes"] as? [JSON] else {
-                    SCLog("Failed to parse snodes from: \(rawResponse).")
+                guard let rawSnodes = json["snodes"] as? [JSON] else {
+                    SCLog("Failed to parse snodes from: \(json).")
                     return []
                 }
                 let swarm: Set<Snode> = Set(rawSnodes.compactMap { rawSnode in
@@ -215,29 +207,29 @@ public enum SnodeAPI {
     }
     
     // MARK: Public API
-    public static func getMessages(for hexEncodedPublicKey: String) -> Promise<Set<RawResponsePromise>> {
+    public static func getMessages(for hexEncodedPublicKey: String) -> Promise<Set<Promise<JSON>>> {
         return getTargetSnodes(for: hexEncodedPublicKey).mapValues(on: workQueue) { snode in
             let parameters = [ "pubKey" : hexEncodedPublicKey ]
             return invoke(.getMessages, on: snode, associatedWith: hexEncodedPublicKey, parameters: parameters)
         }.map(on: workQueue) { Set($0) }
     }
 
-    public static func sendMessage(_ message: Message) -> Promise<Set<RawResponsePromise>> {
+    public static func sendMessage(_ message: Message) -> Promise<Set<Promise<JSON>>> {
         let destination = message.destination
         // TODO: Calculate proof of work and get target snodes simultaneously?
         return message.calculatePoW().then(on: workQueue) { messageWithPoW in
             return getTargetSnodes(for: destination).map(on: workQueue) { snodes in
                 let parameters = messageWithPoW.toJSON()
                 return Set(snodes.map { snode in
-                    return invoke(.sendMessage, on: snode, associatedWith: destination, parameters: parameters).map(on: workQueue) { rawResponse in
-                        if let json = rawResponse as? JSON, let powDifficulty = json["difficulty"] as? Int {
-                            guard powDifficulty != SnodeAPI.powDifficulty else { return rawResponse }
+                    return invoke(.sendMessage, on: snode, associatedWith: destination, parameters: parameters).map(on: workQueue) { json in
+                        if let powDifficulty = json["difficulty"] as? Int {
+                            guard powDifficulty != SnodeAPI.powDifficulty else { return json }
                             SCLog("Setting proof of work difficulty to \(powDifficulty).")
                             SnodeAPI.powDifficulty = UInt(powDifficulty)
                         } else {
-                            SCLog("Failed to update proof of work difficulty from: \(rawResponse).")
+                            SCLog("Failed to update proof of work difficulty from: \(json).")
                         }
-                        return rawResponse
+                        return json
                     }.retryingIfNeeded(maxRetryCount: maxRetryCount)
                 })
             }.retryingIfNeeded(maxRetryCount: maxRetryCount)
