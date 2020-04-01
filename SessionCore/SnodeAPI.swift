@@ -99,17 +99,26 @@ public enum SnodeAPI {
                 }
                 let statusCode = UInt(response.statusCode)
                 guard 200...299 ~= statusCode else {
-                    SCLog("\(verb.rawValue) request to \(url) failed with status code: \(statusCode).")
-                    let json = try? JSONSerialization.jsonObject(with: data, options: []) as? JSON
+                    var json: JSON? = nil
+                    if let j = try? JSONSerialization.jsonObject(with: data, options: []) as? JSON {
+                        json = j
+                    } else if let result = String(data: data, encoding: .utf8) {
+                        json = [ "result" : result ]
+                    }
+                    let jsonDescription = json?.prettifiedDescription ?? "no debugging info provided"
+                    SCLog("\(verb.rawValue) request to \(url) failed with status code: \(statusCode) (\(jsonDescription)).")
                     return seal.reject(Error.httpRequestFailed(statusCode: statusCode, json: json))
                 }
-                do {
-                    let json = try JSONSerialization.jsonObject(with: data, options: [])
-                    seal.fulfill(json)
-                } catch (let error) {
+                var json: JSON! = nil
+                if let j = try? JSONSerialization.jsonObject(with: data, options: []) as? JSON {
+                    json = j
+                } else if let result = String(data: data, encoding: .utf8) {
+                    json = [ "result" : result ]
+                } else {
                     SCLog("Couldn't parse JSON returned by \(verb.rawValue) request to \(url).")
-                    seal.reject(error)
+                    return seal.reject(Error.invalidJSON)
                 }
+                seal.fulfill(json!)
             }
             task.resume()
         }
