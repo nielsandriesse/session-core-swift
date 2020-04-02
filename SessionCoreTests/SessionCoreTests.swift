@@ -3,6 +3,7 @@ import PromiseKit
 import XCTest
 
 // TODO: Test error handling
+// TODO: Test race condition handling
 
 class SessionCoreTests : XCTestCase {
     private let maxRetryCount: UInt = 2 // Be a bit more stringent when testing
