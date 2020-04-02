@@ -13,6 +13,7 @@
 		C39AFE34241DDA02009B864E /* SessionCoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C39AFE33241DDA02009B864E /* SessionCoreTests.swift */; };
 		C3A3BD02242D8F9700237DC0 /* CryptoSwift.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C3A3BD00242D8F9700237DC0 /* CryptoSwift.framework */; };
 		C3A3BD03242D8F9700237DC0 /* PromiseKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C3A3BD01242D8F9700237DC0 /* PromiseKit.framework */; };
+		C3B830F82435B09F00072C5C /* HTTP.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3B830F72435B09E00072C5C /* HTTP.swift */; };
 		C3C181872428A31300253AB9 /* GeneralUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3C181862428A31300253AB9 /* GeneralUtilities.swift */; };
 		C3E3F32C241DF9F600BD217B /* Snode.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3E3F31F241DF9F500BD217B /* Snode.swift */; };
 		C3E3F32F241DF9F600BD217B /* SnodeAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3E3F322241DF9F500BD217B /* SnodeAPI.swift */; };
@@ -41,6 +42,7 @@
 		C39AFE35241DDA02009B864E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		C3A3BD00242D8F9700237DC0 /* CryptoSwift.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CryptoSwift.framework; path = Carthage/Build/iOS/CryptoSwift.framework; sourceTree = "<group>"; };
 		C3A3BD01242D8F9700237DC0 /* PromiseKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = PromiseKit.framework; path = Carthage/Build/iOS/PromiseKit.framework; sourceTree = "<group>"; };
+		C3B830F72435B09E00072C5C /* HTTP.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTP.swift; sourceTree = "<group>"; };
 		C3C181862428A31300253AB9 /* GeneralUtilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralUtilities.swift; sourceTree = "<group>"; };
 		C3E3F31F241DF9F500BD217B /* Snode.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Snode.swift; sourceTree = "<group>"; };
 		C3E3F322241DF9F500BD217B /* SnodeAPI.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SnodeAPI.swift; sourceTree = "<group>"; };
@@ -77,6 +79,7 @@
 			children = (
 				C3E3F335241E009800BD217B /* Dictionary+Description.swift */,
 				C3C181862428A31300253AB9 /* GeneralUtilities.swift */,
+				C3B830F72435B09E00072C5C /* HTTP.swift */,
 				C35F169F242C69E200B0090A /* Promise+Hashing.swift */,
 				C3E3F334241E009800BD217B /* Promise+Retrying.swift */,
 			);
@@ -286,6 +289,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C3B830F82435B09F00072C5C /* HTTP.swift in Sources */,
 				C3E3F330241DF9F600BD217B /* Message.swift in Sources */,
 				C3E3F336241E009800BD217B /* Message+PoW.swift in Sources */,
 				C3C181872428A31300253AB9 /* GeneralUtilities.swift in Sources */,

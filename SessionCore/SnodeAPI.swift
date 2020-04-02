@@ -4,13 +4,10 @@ import PromiseKit
 // TODO: Onion routing
 
 public enum SnodeAPI {
-    private static let urlSession = URLSession(configuration: .ephemeral, delegate: urlSessionDelegate, delegateQueue: nil)
-    private static let urlSessionDelegate = URLSessionDelegateImplementation()
-
     /// All snode related errors must be handled on this queue to avoid race conditions maintaining e.g. failure counts.
     fileprivate static let errorHandlingQueue = DispatchQueue(label: "SnodeAPI.errorHandlingQueue")
     fileprivate static let seedNodePool: Set<String> = [ "http://storage.seed1.loki.network:22023", "http://storage.seed2.loki.network:38157", "http://149.56.148.124:38157" ]
-    /// Only ever accessed from `SnodeAPI.errorHandlingQueue` to avoid race conditions.
+    /// - Note: Must only be modified from `SnodeAPI.errorHandlingQueue` to avoid race conditions.
     fileprivate static var failureCount: [Snode:UInt] = [:]
     fileprivate static var snodePool: Set<Snode> = []
     fileprivate static var swarmCache: [String:Set<Snode>] = [:]
@@ -18,110 +15,34 @@ public enum SnodeAPI {
     internal static let workQueue = DispatchQueue(label: "SnodeAPI.workQueue")
 
     // MARK: Settings
-    private static let apiVersion = "v1"
     private static let minimumSnodeCount: UInt = 2
     private static let targetSnodeCount: UInt = 3
-    private static let timeout: TimeInterval = 20
 
     fileprivate static let failureThreshold: UInt = 2
 
     internal static let maxRetryCount: UInt = 4
     internal static var powDifficulty: UInt = 1
 
-    // MARK: HTTP Verb
-    private enum HTTPVerb : String {
-        case get = "GET"
-        case put = "PUT"
-        case post = "POST"
-        case delete = "DELETE"
-    }
-
-    // MARK: URL Session Delegate Implementation
-    private final class URLSessionDelegateImplementation : NSObject, URLSessionDelegate {
-
-        func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
-            // Snode to snode communication uses self-signed certificates but clients can safely ignore this
-            completionHandler(.useCredential, URLCredential(trust: challenge.protectionSpace.serverTrust!))
-        }
-    }
-
     // MARK: Error
     public enum Error : LocalizedError {
-        case proofOfWorkCalculationFailed
         case clockOutOfSync
+        case proofOfWorkCalculationFailed
         case snodePoolUpdatingFailed
-        case invalidJSON
-        case httpRequestFailed(statusCode: UInt, json: JSON?)
-        case generic
 
         public var errorDescription: String? {
             switch self {
-            case .proofOfWorkCalculationFailed: return "Failed to calculate proof of work."
             case .clockOutOfSync: return "Your clock is out of sync with the service node network."
+            case .proofOfWorkCalculationFailed: return "Failed to calculate proof of work."
             case .snodePoolUpdatingFailed: return "Failed to update service node pool."
-            case .invalidJSON: return "Invalid JSON."
-            case .httpRequestFailed(let statusCode, _): return "HTTP request failed with status code: \(statusCode)."
-            case .generic: return "An error occurred."
             }
         }
     }
-
-    // MARK: Private API
-    private static func execute(_ verb: HTTPVerb, _ url: String, parameters: JSON? = nil, headers: [String:String]? = nil) -> Promise<JSON> {
-        return Promise<JSON> { seal in
-            let url = URL(string: url)!
-            var request = URLRequest(url: url)
-            request.httpMethod = verb.rawValue
-            if let parameters = parameters {
-                do {
-                    guard JSONSerialization.isValidJSONObject(parameters) else { return seal.reject(Error.invalidJSON) }
-                    request.httpBody = try JSONSerialization.data(withJSONObject: parameters)
-                } catch (let error) {
-                    return seal.reject(error)
-                }
-            }
-            if let headers = headers {
-                request.allHTTPHeaderFields = headers
-            }
-            request.timeoutInterval = timeout
-            let task = urlSession.dataTask(with: request) { data, response, error in
-                guard let data = data, let response = response as? HTTPURLResponse else {
-                    SCLog("\(verb.rawValue) request to \(url) failed.")
-                    return seal.reject(Error.generic)
-                }
-                if let error = error {
-                    SCLog("\(verb.rawValue) request to \(url) failed due to error: \(error).")
-                    return seal.reject(error)
-                }
-                let statusCode = UInt(response.statusCode)
-                var json: JSON? = nil
-                if let j = try? JSONSerialization.jsonObject(with: data, options: []) as? JSON {
-                    json = j
-                } else if let result = String(data: data, encoding: .utf8) {
-                    json = [ "result" : result ]
-                }
-                guard 200...299 ~= statusCode else {
-                    let jsonDescription = json?.prettifiedDescription ?? "no debugging info provided"
-                    SCLog("\(verb.rawValue) request to \(url) failed with status code: \(statusCode) (\(jsonDescription)).")
-                    return seal.reject(Error.httpRequestFailed(statusCode: statusCode, json: json))
-                }
-                if let json = json {
-                    seal.fulfill(json)
-                } else {
-                    SCLog("Couldn't parse JSON returned by \(verb.rawValue) request to \(url).")
-                    return seal.reject(Error.invalidJSON)
-                }
-            }
-            task.resume()
-        }
-    }
-
     // MARK: Internal API
-    internal static func invoke(_ method: Snode.Method, on snode: Snode, associatedWith hexEncodedPublicKey: String, parameters: JSON, headers: [String:String]? = nil) -> Promise<JSON> {
-        let url = "\(snode.address):\(snode.port)/storage_rpc/\(apiVersion)"
+    internal static func invoke(_ method: Snode.Method, on snode: Snode, associatedWith hexEncodedPublicKey: String, parameters: JSON) -> Promise<JSON> {
+        let url = "\(snode.address):\(snode.port)/storage_rpc/v1"
         SCLog("Invoking \(method.rawValue) on \(snode) with \(parameters.prettifiedDescription).")
         let parameters: JSON = [ "method" : method.rawValue, "params" : parameters ]
-        return execute(.post, url, parameters: parameters, headers: headers).handlingErrorsIfNeeded(for: snode, associatedWith: hexEncodedPublicKey)
+        return HTTP.execute(.post, url, parameters: parameters).handlingErrorsIfNeeded(for: snode, associatedWith: hexEncodedPublicKey)
     }
 
     internal static func getRandomSnode() -> Promise<Snode> {
@@ -136,7 +57,7 @@ public enum SnodeAPI {
                     "fields" : [ "public_ip" : true, "storage_port" : true ]
                 ]
             ]
-            return execute(.post, url, parameters: parameters).map(on: workQueue) { json in
+            return HTTP.execute(.post, url, parameters: parameters).map(on: workQueue) { json in
                 guard let intermediate = json["result"] as? JSON,
                     let rawSnodes = intermediate["service_node_states"] as? [JSON] else { throw Error.snodePoolUpdatingFailed }
                 snodePool = Set(rawSnodes.compactMap { rawSnode in
@@ -242,7 +163,7 @@ internal extension Promise {
 
     func handlingErrorsIfNeeded(for snode: Snode, associatedWith hexEncodedPublicKey: String) -> Promise<T> {
         return recover(on: SnodeAPI.errorHandlingQueue) { error -> Promise<T> in
-            guard case SnodeAPI.Error.httpRequestFailed(let statusCode, let json) = error else { throw error }
+            guard case HTTP.Error.httpRequestFailed(let statusCode, let json) = error else { throw error }
             switch statusCode {
             case 0, 400, 500, 503:
                 // The snode is unreachable
