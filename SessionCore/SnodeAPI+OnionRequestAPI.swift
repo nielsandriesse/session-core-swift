@@ -98,7 +98,7 @@ extension SnodeAPI {
                         unusedSnodes.remove(pathSnode) // All used snodes should be unique
                         return pathSnode
                     }
-                    SCLog("Built new onion request path: \(result.prettifiedDescription).")
+                    SCLog("Built new onion request path: \(getPrettifiedDescription(result)).")
                     return result
                 })
             }
@@ -130,7 +130,7 @@ extension SnodeAPI {
     /// Builds an onion around `payload` and returns the result.
     internal static func buildOnion(around payload: JSON, targetedAt snode: Snode) -> Promise<OnionBuildingResult> {
         var guardSnode: Snode!
-        var targetSnodeSymmetricKey: Data! // Needed by invoke(_:on:with:) to decrypt the response sent back by the target snode
+        var targetSnodeSymmetricKey: Data! // Needed by invoke(_:on:associatedWith:parameters:) to decrypt the response sent back by the target snode
         var encryptionResult: EncryptionResult!
         return getPath(excluding: snode).then(on: workQueue) { path -> Promise<EncryptionResult> in
             guardSnode = path.first!

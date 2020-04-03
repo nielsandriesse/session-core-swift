@@ -27,13 +27,15 @@ internal enum HTTP {
     // MARK: Error
     internal enum Error : LocalizedError {
         case generic
-        case httpRequestFailed(statusCode: UInt, json: JSON?)
+        case httpRequestFailed(verb: Verb, url: String, statusCode: UInt, json: JSON?)
         case invalidJSON
 
         var errorDescription: String? {
             switch self {
             case .generic: return "An error occurred."
-            case .httpRequestFailed(let statusCode, _): return "HTTP request failed with status code: \(statusCode)."
+            case .httpRequestFailed(let verb, let url, let statusCode, let json):
+                let jsonDescription = json.map { getPrettifiedDescription($0) } ?? "no debugging info provided"
+                return "\(verb.rawValue) request to \(url) failed with status code: \(statusCode) (\(jsonDescription))."
             case .invalidJSON: return "Invalid JSON."
             }
         }
@@ -42,8 +44,7 @@ internal enum HTTP {
     // MARK: Main
     internal static func execute(_ verb: Verb, _ url: String, parameters: JSON? = nil, timeout: TimeInterval = HTTP.timeout) -> Promise<JSON> {
         return Promise<JSON> { seal in
-            let url = URL(string: url)!
-            var request = URLRequest(url: url)
+            var request = URLRequest(url: URL(string: url)!)
             request.httpMethod = verb.rawValue
             if let parameters = parameters {
                 do {
@@ -75,9 +76,9 @@ internal enum HTTP {
                     json = [ "result" : result ]
                 }
                 guard 200...299 ~= statusCode else {
-                    let jsonDescription = json?.prettifiedDescription ?? "no debugging info provided"
+                    let jsonDescription = json.map { getPrettifiedDescription($0) } ?? "no debugging info provided"
                     SCLog("\(verb.rawValue) request to \(url) failed with status code: \(statusCode) (\(jsonDescription)).")
-                    return seal.reject(Error.httpRequestFailed(statusCode: statusCode, json: json))
+                    return seal.reject(Error.httpRequestFailed(verb: verb, url: url, statusCode: statusCode, json: json))
                 }
                 if let json = json {
                     seal.fulfill(json)

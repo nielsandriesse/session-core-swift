@@ -1,4 +1,5 @@
 
+/// A Loki Service Node as described in [The Session Whitepaper](https://arxiv.org/pdf/2002.04609.pdf).
 internal struct Snode : Hashable, CustomStringConvertible {
     internal let address: String
     internal let port: UInt16

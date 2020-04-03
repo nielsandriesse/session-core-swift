@@ -3,6 +3,7 @@ import PromiseKit
 
 // TODO: Make snodePool, swarmCache and powDifficulty thread safe?
 
+/// See [The Session Whitepaper](https://arxiv.org/pdf/2002.04609.pdf) for more information.
 public enum SnodeAPI {
     /// All snode related errors must be handled on this queue to avoid race conditions maintaining e.g. failure counts.
     fileprivate static let errorHandlingQueue = DispatchQueue(label: "SnodeAPI.errorHandlingQueue")
@@ -29,8 +30,8 @@ public enum SnodeAPI {
     internal enum Mode {
         /// Use onion requests as described in [The Session Whitepaper](https://arxiv.org/pdf/2002.04609.pdf).
         case onion(layerCount: UInt)
-        /// Use regular HTTP requests. This mode provides no privacy protection.
-        case regular
+        /// Use plain HTTP requests. This mode provides no additional privacy.
+        case plain
     }
 
     // MARK: Error
@@ -59,10 +60,11 @@ public enum SnodeAPI {
             }
         }
     }
+
     // MARK: Internal API
     internal static func invoke(_ method: Snode.Method, on snode: Snode, associatedWith hexEncodedPublicKey: String, parameters: JSON) -> Promise<JSON> {
         let url = "\(snode.address):\(snode.port)/storage_rpc/v1"
-        SCLog("Invoking \(method.rawValue) on \(snode) with \(parameters.prettifiedDescription).")
+        SCLog("Invoking \(method.rawValue) on \(snode) with \(getPrettifiedDescription(parameters)).")
         let parameters: JSON = [ "method" : method.rawValue, "params" : parameters ]
         switch mode {
         case .onion:
@@ -106,7 +108,7 @@ public enum SnodeAPI {
         }
         // TODO: Onion request error handling
         return promise
-        case .regular: return HTTP.execute(.post, url, parameters: parameters).handlingErrorsIfNeeded(for: snode, associatedWith: hexEncodedPublicKey)
+        case .plain: return HTTP.execute(.post, url, parameters: parameters).handlingErrorsIfNeeded(for: snode, associatedWith: hexEncodedPublicKey)
         }
     }
 
@@ -230,7 +232,7 @@ private extension Promise {
 
     func handlingErrorsIfNeeded(for snode: Snode, associatedWith hexEncodedPublicKey: String) -> Promise<T> {
         return recover(on: SnodeAPI.errorHandlingQueue) { error -> Promise<T> in
-            guard case HTTP.Error.httpRequestFailed(let statusCode, let json) = error else { throw error }
+            guard case HTTP.Error.httpRequestFailed(_, _, let statusCode, let json) = error else { throw error }
             switch statusCode {
             case 0, 400, 500, 503:
                 // The snode is unreachable
