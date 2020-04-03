@@ -5,7 +5,7 @@ internal enum HTTP {
     private static let urlSessionDelegate = URLSessionDelegateImplementation()
 
     // MARK: Settings
-    private static let timeout: TimeInterval = 20
+    private static let timeout: TimeInterval = 10
 
     // MARK: URL Session Delegate Implementation
     private final class URLSessionDelegateImplementation : NSObject, URLSessionDelegate {
@@ -39,6 +39,7 @@ internal enum HTTP {
         }
     }
 
+    // MARK: Main
     internal static func execute(_ verb: Verb, _ url: String, parameters: JSON? = nil, timeout: TimeInterval = HTTP.timeout) -> Promise<JSON> {
         return Promise<JSON> { seal in
             let url = URL(string: url)!
@@ -55,8 +56,12 @@ internal enum HTTP {
             request.timeoutInterval = timeout
             let task = urlSession.dataTask(with: request) { data, response, error in
                 guard let data = data, let response = response as? HTTPURLResponse else {
-                    SCLog("\(verb.rawValue) request to \(url) failed.")
-                    return seal.reject(Error.generic)
+                    if let error = error {
+                        SCLog("\(verb.rawValue) request to \(url) failed due to error: \(error).")
+                    } else {
+                        SCLog("\(verb.rawValue) request to \(url) failed.")
+                    }
+                    return seal.reject(error ?? Error.generic)
                 }
                 if let error = error {
                     SCLog("\(verb.rawValue) request to \(url) failed due to error: \(error).")

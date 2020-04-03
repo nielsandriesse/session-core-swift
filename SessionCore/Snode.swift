@@ -2,6 +2,12 @@
 internal struct Snode : Hashable, CustomStringConvertible {
     internal let address: String
     internal let port: UInt16
+    internal let publicKeySet: KeySet
+
+    internal struct KeySet : Hashable {
+        let ed25519Key: String
+        let x25519Key: String
+    }
 
     internal enum Method : String {
         case getStats = "get_stats"

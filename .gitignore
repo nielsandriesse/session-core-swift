@@ -5,5 +5,8 @@ xcuserdata/
 Carthage
 Cartfile.resolved
 
+## CocoaPods
+Pods
+
 ## macOS
 .DS_Store

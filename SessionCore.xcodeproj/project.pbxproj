@@ -3,10 +3,12 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 51;
 	objects = {
 
 /* Begin PBXBuildFile section */
+		07CCF4F7D05962A5BEC17C49 /* Pods_SessionCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 24C792A42330D63E5661772B /* Pods_SessionCore.framework */; };
+		747F012FA9DF0868CD656984 /* Pods_SessionCore_SessionCoreTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FC9DEE6F35AF1D537D0966AE /* Pods_SessionCore_SessionCoreTests.framework */; };
 		C3173BB6242DC0D500DD725F /* PromiseKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C3A3BD01242D8F9700237DC0 /* PromiseKit.framework */; };
 		C35F16A0242C69E200B0090A /* Promise+Hashing.swift in Sources */ = {isa = PBXBuildFile; fileRef = C35F169F242C69E200B0090A /* Promise+Hashing.swift */; };
 		C39AFE2F241DDA02009B864E /* SessionCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C39AFE25241DDA02009B864E /* SessionCore.framework */; };
@@ -14,6 +16,9 @@
 		C3A3BD02242D8F9700237DC0 /* CryptoSwift.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C3A3BD00242D8F9700237DC0 /* CryptoSwift.framework */; };
 		C3A3BD03242D8F9700237DC0 /* PromiseKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C3A3BD01242D8F9700237DC0 /* PromiseKit.framework */; };
 		C3B830F82435B09F00072C5C /* HTTP.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3B830F72435B09E00072C5C /* HTTP.swift */; };
+		C3B830FB2436B3B300072C5C /* SnodeAPI+OnionRequestAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3B830F92436B3B300072C5C /* SnodeAPI+OnionRequestAPI.swift */; };
+		C3B830FC2436B3B300072C5C /* SnodeAPI+OnionRequestEncryption.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3B830FA2436B3B300072C5C /* SnodeAPI+OnionRequestEncryption.swift */; };
+		C3B830FE2436BDE800072C5C /* Array+Description.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3B830FD2436BDE800072C5C /* Array+Description.swift */; };
 		C3C181872428A31300253AB9 /* GeneralUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3C181862428A31300253AB9 /* GeneralUtilities.swift */; };
 		C3E3F32C241DF9F600BD217B /* Snode.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3E3F31F241DF9F500BD217B /* Snode.swift */; };
 		C3E3F32F241DF9F600BD217B /* SnodeAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3E3F322241DF9F500BD217B /* SnodeAPI.swift */; };
@@ -34,6 +39,10 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		24C792A42330D63E5661772B /* Pods_SessionCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_SessionCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		436F9829BC01B77E8DBCA8E6 /* Pods-SessionCore.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SessionCore.release.xcconfig"; path = "Target Support Files/Pods-SessionCore/Pods-SessionCore.release.xcconfig"; sourceTree = "<group>"; };
+		6E2DE1C8017A623592BB98A4 /* Pods-SessionCore-SessionCoreTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SessionCore-SessionCoreTests.release.xcconfig"; path = "Target Support Files/Pods-SessionCore-SessionCoreTests/Pods-SessionCore-SessionCoreTests.release.xcconfig"; sourceTree = "<group>"; };
+		992F5ACA4D930475AFE9D94D /* Pods-SessionCore-SessionCoreTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SessionCore-SessionCoreTests.debug.xcconfig"; path = "Target Support Files/Pods-SessionCore-SessionCoreTests/Pods-SessionCore-SessionCoreTests.debug.xcconfig"; sourceTree = "<group>"; };
 		C35F169F242C69E200B0090A /* Promise+Hashing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Promise+Hashing.swift"; sourceTree = "<group>"; };
 		C39AFE25241DDA02009B864E /* SessionCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = SessionCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		C39AFE29241DDA02009B864E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -43,6 +52,10 @@
 		C3A3BD00242D8F9700237DC0 /* CryptoSwift.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CryptoSwift.framework; path = Carthage/Build/iOS/CryptoSwift.framework; sourceTree = "<group>"; };
 		C3A3BD01242D8F9700237DC0 /* PromiseKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = PromiseKit.framework; path = Carthage/Build/iOS/PromiseKit.framework; sourceTree = "<group>"; };
 		C3B830F72435B09E00072C5C /* HTTP.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTP.swift; sourceTree = "<group>"; };
+		C3B830F92436B3B300072C5C /* SnodeAPI+OnionRequestAPI.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "SnodeAPI+OnionRequestAPI.swift"; sourceTree = "<group>"; };
+		C3B830FA2436B3B300072C5C /* SnodeAPI+OnionRequestEncryption.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "SnodeAPI+OnionRequestEncryption.swift"; sourceTree = "<group>"; };
+		C3B830FD2436BDE800072C5C /* Array+Description.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Array+Description.swift"; sourceTree = "<group>"; };
+		C3B830FF2436C3F100072C5C /* _25519.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = _25519.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		C3C181862428A31300253AB9 /* GeneralUtilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralUtilities.swift; sourceTree = "<group>"; };
 		C3E3F31F241DF9F500BD217B /* Snode.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Snode.swift; sourceTree = "<group>"; };
 		C3E3F322241DF9F500BD217B /* SnodeAPI.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SnodeAPI.swift; sourceTree = "<group>"; };
@@ -50,6 +63,8 @@
 		C3E3F333241E009800BD217B /* Message+PoW.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Message+PoW.swift"; sourceTree = "<group>"; };
 		C3E3F334241E009800BD217B /* Promise+Retrying.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Promise+Retrying.swift"; sourceTree = "<group>"; };
 		C3E3F335241E009800BD217B /* Dictionary+Description.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Dictionary+Description.swift"; sourceTree = "<group>"; };
+		D5AEE0780E956FA48EC022CC /* Pods-SessionCore.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SessionCore.debug.xcconfig"; path = "Target Support Files/Pods-SessionCore/Pods-SessionCore.debug.xcconfig"; sourceTree = "<group>"; };
+		FC9DEE6F35AF1D537D0966AE /* Pods_SessionCore_SessionCoreTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_SessionCore_SessionCoreTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -59,6 +74,7 @@
 			files = (
 				C3A3BD02242D8F9700237DC0 /* CryptoSwift.framework in Frameworks */,
 				C3A3BD03242D8F9700237DC0 /* PromiseKit.framework in Frameworks */,
+				07CCF4F7D05962A5BEC17C49 /* Pods_SessionCore.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -68,18 +84,30 @@
 			files = (
 				C3173BB6242DC0D500DD725F /* PromiseKit.framework in Frameworks */,
 				C39AFE2F241DDA02009B864E /* SessionCore.framework in Frameworks */,
+				747F012FA9DF0868CD656984 /* Pods_SessionCore_SessionCoreTests.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		9173EEAB9E9FFE10E921D073 /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				D5AEE0780E956FA48EC022CC /* Pods-SessionCore.debug.xcconfig */,
+				436F9829BC01B77E8DBCA8E6 /* Pods-SessionCore.release.xcconfig */,
+				992F5ACA4D930475AFE9D94D /* Pods-SessionCore-SessionCoreTests.debug.xcconfig */,
+				6E2DE1C8017A623592BB98A4 /* Pods-SessionCore-SessionCoreTests.release.xcconfig */,
+			);
+			path = Pods;
+			sourceTree = "<group>";
+		};
 		C3173BBA242E075C00DD725F /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
+				C3B830FD2436BDE800072C5C /* Array+Description.swift */,
 				C3E3F335241E009800BD217B /* Dictionary+Description.swift */,
 				C3C181862428A31300253AB9 /* GeneralUtilities.swift */,
-				C3B830F72435B09E00072C5C /* HTTP.swift */,
 				C35F169F242C69E200B0090A /* Promise+Hashing.swift */,
 				C3E3F334241E009800BD217B /* Promise+Retrying.swift */,
 			);
@@ -93,6 +121,7 @@
 				C39AFE32241DDA02009B864E /* SessionCoreTests */,
 				C39AFE26241DDA02009B864E /* Products */,
 				C3E3F339241E046700BD217B /* Frameworks */,
+				9173EEAB9E9FFE10E921D073 /* Pods */,
 			);
 			sourceTree = "<group>";
 		};
@@ -108,10 +137,13 @@
 		C39AFE27241DDA02009B864E /* SessionCore */ = {
 			isa = PBXGroup;
 			children = (
+				C3B830F72435B09E00072C5C /* HTTP.swift */,
 				C3E3F323241DF9F500BD217B /* Message.swift */,
 				C3E3F333241E009800BD217B /* Message+PoW.swift */,
 				C3E3F31F241DF9F500BD217B /* Snode.swift */,
 				C3E3F322241DF9F500BD217B /* SnodeAPI.swift */,
+				C3B830F92436B3B300072C5C /* SnodeAPI+OnionRequestAPI.swift */,
+				C3B830FA2436B3B300072C5C /* SnodeAPI+OnionRequestEncryption.swift */,
 				C3173BBA242E075C00DD725F /* Utilities */,
 				C39AFE29241DDA02009B864E /* Info.plist */,
 			);
@@ -130,8 +162,11 @@
 		C3E3F339241E046700BD217B /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				C3B830FF2436C3F100072C5C /* _25519.framework */,
 				C3A3BD00242D8F9700237DC0 /* CryptoSwift.framework */,
 				C3A3BD01242D8F9700237DC0 /* PromiseKit.framework */,
+				24C792A42330D63E5661772B /* Pods_SessionCore.framework */,
+				FC9DEE6F35AF1D537D0966AE /* Pods_SessionCore_SessionCoreTests.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -153,6 +188,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = C39AFE39241DDA02009B864E /* Build configuration list for PBXNativeTarget "SessionCore" */;
 			buildPhases = (
+				937E8CE9D68B52C9A503165D /* [CP] Check Pods Manifest.lock */,
 				C39AFE20241DDA02009B864E /* Headers */,
 				C39AFE21241DDA02009B864E /* Sources */,
 				C39AFE22241DDA02009B864E /* Frameworks */,
@@ -172,10 +208,12 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = C39AFE3C241DDA02009B864E /* Build configuration list for PBXNativeTarget "SessionCoreTests" */;
 			buildPhases = (
+				9D8F21C10EB737877A9332F8 /* [CP] Check Pods Manifest.lock */,
 				C39AFE2A241DDA02009B864E /* Sources */,
 				C39AFE2B241DDA02009B864E /* Frameworks */,
 				C39AFE2C241DDA02009B864E /* Resources */,
 				C3173BB7242DC0DA00DD725F /* Embed Carthage Frameworks */,
+				0C886166E5116E0AA3BDDD70 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -243,6 +281,67 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		0C886166E5116E0AA3BDDD70 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-SessionCore-SessionCoreTests/Pods-SessionCore-SessionCoreTests-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-SessionCore-SessionCoreTests/Pods-SessionCore-SessionCoreTests-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-SessionCore-SessionCoreTests/Pods-SessionCore-SessionCoreTests-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		937E8CE9D68B52C9A503165D /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-SessionCore-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		9D8F21C10EB737877A9332F8 /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-SessionCore-SessionCoreTests-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
 		C3173BB7242DC0DA00DD725F /* Embed Carthage Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -251,6 +350,7 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
+				"$(SRCROOT)/Carthage/Build/iOS/CryptoSwift.framework",
 				"$(SRCROOT)/Carthage/Build/iOS/PromiseKit.framework",
 			);
 			name = "Embed Carthage Frameworks";
@@ -289,6 +389,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C3B830FE2436BDE800072C5C /* Array+Description.swift in Sources */,
 				C3B830F82435B09F00072C5C /* HTTP.swift in Sources */,
 				C3E3F330241DF9F600BD217B /* Message.swift in Sources */,
 				C3E3F336241E009800BD217B /* Message+PoW.swift in Sources */,
@@ -297,6 +398,8 @@
 				C3E3F32C241DF9F600BD217B /* Snode.swift in Sources */,
 				C3E3F32F241DF9F600BD217B /* SnodeAPI.swift in Sources */,
 				C3E3F337241E009800BD217B /* Promise+Retrying.swift in Sources */,
+				C3B830FC2436B3B300072C5C /* SnodeAPI+OnionRequestEncryption.swift in Sources */,
+				C3B830FB2436B3B300072C5C /* SnodeAPI+OnionRequestAPI.swift in Sources */,
 				C35F16A0242C69E200B0090A /* Promise+Hashing.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -441,6 +544,7 @@
 		};
 		C39AFE3A241DDA02009B864E /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = D5AEE0780E956FA48EC022CC /* Pods-SessionCore.debug.xcconfig */;
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
@@ -456,6 +560,7 @@
 				);
 				INFOPLIST_FILE = SessionCore/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -473,6 +578,7 @@
 		};
 		C39AFE3B241DDA02009B864E /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 436F9829BC01B77E8DBCA8E6 /* Pods-SessionCore.release.xcconfig */;
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
@@ -488,6 +594,7 @@
 				);
 				INFOPLIST_FILE = SessionCore/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -504,6 +611,7 @@
 		};
 		C39AFE3D241DDA02009B864E /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 992F5ACA4D930475AFE9D94D /* Pods-SessionCore-SessionCoreTests.debug.xcconfig */;
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
@@ -514,6 +622,7 @@
 					"$(PROJECT_DIR)/Carthage/Build/iOS",
 				);
 				INFOPLIST_FILE = SessionCoreTests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -529,6 +638,7 @@
 		};
 		C39AFE3E241DDA02009B864E /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 6E2DE1C8017A623592BB98A4 /* Pods-SessionCore-SessionCoreTests.release.xcconfig */;
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
@@ -539,6 +649,7 @@
 					"$(PROJECT_DIR)/Carthage/Build/iOS",
 				);
 				INFOPLIST_FILE = SessionCoreTests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",

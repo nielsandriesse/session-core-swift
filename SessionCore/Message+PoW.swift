@@ -1,6 +1,8 @@
 import CryptoSwift
 import PromiseKit
 
+// TODO: Clean
+
 public extension Message {
     /// - Note: Exposed for testing purposes.
     static let powQueue = DispatchQueue(label: "powQueue")

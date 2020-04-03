@@ -1,18 +1,20 @@
+import CryptoSwift
 import PromiseKit
 
 // TODO: Make snodePool, swarmCache and powDifficulty thread safe?
-// TODO: Onion routing
 
 public enum SnodeAPI {
     /// All snode related errors must be handled on this queue to avoid race conditions maintaining e.g. failure counts.
     fileprivate static let errorHandlingQueue = DispatchQueue(label: "SnodeAPI.errorHandlingQueue")
     fileprivate static let seedNodePool: Set<String> = [ "http://storage.seed1.loki.network:22023", "http://storage.seed2.loki.network:38157", "http://149.56.148.124:38157" ]
-    /// - Note: Must only be modified from `SnodeAPI.errorHandlingQueue` to avoid race conditions.
-    fileprivate static var failureCount: [Snode:UInt] = [:]
-    fileprivate static var snodePool: Set<Snode> = []
     fileprivate static var swarmCache: [String:Set<Snode>] = [:]
 
-    internal static let workQueue = DispatchQueue(label: "SnodeAPI.workQueue")
+    /// - Note: Must only be modified from `SnodeAPI.errorHandlingQueue` to avoid race conditions.
+    internal static var failureCount: [Snode:UInt] = [:]
+    /// - Note: Changing this on the fly is not recommended.
+    internal static var mode: Mode = .onion(layerCount: 1)
+    internal static var snodePool: Set<Snode> = []
+    internal static let workQueue = DispatchQueue(label: "SnodeAPI.workQueue", qos: .userInitiated)
 
     // MARK: Settings
     private static let minimumSnodeCount: UInt = 2
@@ -23,17 +25,37 @@ public enum SnodeAPI {
     internal static let maxRetryCount: UInt = 4
     internal static var powDifficulty: UInt = 1
 
+    // MARK: Mode
+    internal enum Mode {
+        /// Use onion requests as described in [The Session Whitepaper](https://arxiv.org/pdf/2002.04609.pdf).
+        case onion(layerCount: UInt)
+        /// Use regular HTTP requests. This mode provides no privacy protection.
+        case regular
+    }
+
     // MARK: Error
     public enum Error : LocalizedError {
         case clockOutOfSync
+        case insufficientSnodes
+        case keyPairGenerationFailed
+        case missingSnodeVersion
         case proofOfWorkCalculationFailed
+        case randomDataGenerationFailed
+        case sharedSecretGenerationFailed
         case snodePoolUpdatingFailed
+        case unsupportedSnodeVersion(String)
 
         public var errorDescription: String? {
             switch self {
             case .clockOutOfSync: return "Your clock is out of sync with the service node network."
+            case .insufficientSnodes: return "Couldn't find enough service nodes to build a path."
+            case .keyPairGenerationFailed: return "Couldn't generate a key pair."
+            case .missingSnodeVersion: return "Missing service node version."
             case .proofOfWorkCalculationFailed: return "Failed to calculate proof of work."
+            case .randomDataGenerationFailed: return "Couldn't generate random data."
+            case .sharedSecretGenerationFailed: return "Couldn't generate a shared secret."
             case .snodePoolUpdatingFailed: return "Failed to update service node pool."
+            case .unsupportedSnodeVersion(let version): return "Unsupported service node version: \(version)."
             }
         }
     }
@@ -42,7 +64,50 @@ public enum SnodeAPI {
         let url = "\(snode.address):\(snode.port)/storage_rpc/v1"
         SCLog("Invoking \(method.rawValue) on \(snode) with \(parameters.prettifiedDescription).")
         let parameters: JSON = [ "method" : method.rawValue, "params" : parameters ]
-        return HTTP.execute(.post, url, parameters: parameters).handlingErrorsIfNeeded(for: snode, associatedWith: hexEncodedPublicKey)
+        switch mode {
+        case .onion:
+        let (promise, seal) = Promise<JSON>.pending()
+        workQueue.async {
+            let payload: JSON = [ "method" : method.rawValue, "params" : parameters ]
+            buildOnion(around: payload, targetedAt: snode).done(on: workQueue) { intermediate in
+                let guardSnode = intermediate.guardSnode
+                let url = "\(guardSnode.address):\(guardSnode.port)/onion_req"
+                let finalEncryptionResult = intermediate.finalEncryptionResult
+                let onion = finalEncryptionResult.ciphertext
+                let parameters: JSON = [
+                    "ciphertext" : onion.base64EncodedString(),
+                    "ephemeral_key" : finalEncryptionResult.ephemeralPublicKey.toHexString()
+                ]
+                let targetSnodeSymmetricKey = intermediate.targetSnodeSymmetricKey
+                HTTP.execute(.post, url, parameters: parameters).done(on: workQueue) { json in
+                    guard let base64EncodedIVAndCiphertext = json["result"] as? String,
+                        let ivAndCiphertext = Data(base64Encoded: base64EncodedIVAndCiphertext) else { return seal.reject(HTTP.Error.invalidJSON) }
+                    let iv = ivAndCiphertext[0..<Int(ivSize)]
+                    let ciphertext = ivAndCiphertext[Int(ivSize)...]
+                    do {
+                        let gcm = GCM(iv: iv.bytes, tagLength: Int(gcmTagSize), mode: .combined)
+                        let aes = try AES(key: targetSnodeSymmetricKey.bytes, blockMode: gcm, padding: .pkcs7)
+                        let data = Data(try aes.decrypt(ciphertext.bytes))
+                        do {
+                            guard let json = try JSONSerialization.jsonObject(with: data, options: []) as? JSON else { return seal.reject(HTTP.Error.invalidJSON) }
+                            seal.fulfill(json)
+                        } catch (let error) {
+                            seal.reject(error)
+                        }
+                    } catch (let error) {
+                        seal.reject(error)
+                    }
+                }.catch(on: workQueue) { error in
+                    seal.reject(error)
+                }
+            }.catch(on: workQueue) { error in
+                seal.reject(error)
+            }
+        }
+        // TODO: Onion request error handling
+        return promise
+        case .regular: return HTTP.execute(.post, url, parameters: parameters).handlingErrorsIfNeeded(for: snode, associatedWith: hexEncodedPublicKey)
+        }
     }
 
     internal static func getRandomSnode() -> Promise<Snode> {
@@ -61,7 +126,8 @@ public enum SnodeAPI {
                 guard let intermediate = json["result"] as? JSON,
                     let rawSnodes = intermediate["service_node_states"] as? [JSON] else { throw Error.snodePoolUpdatingFailed }
                 snodePool = Set(rawSnodes.compactMap { rawSnode in
-                    guard let address = rawSnode["public_ip"] as? String, let port = rawSnode["storage_port"] as? Int else {
+                    guard let address = rawSnode["public_ip"] as? String, let port = rawSnode["storage_port"] as? Int,
+                        let ed25519PublicKey = rawSnode["pubkey_ed25519"] as? String, let x25519PublicKey = rawSnode["pubkey_x25519"] as? String else {
                         SCLog("Failed to parse snode from: \(rawSnode).")
                         return nil
                     }
@@ -69,7 +135,7 @@ public enum SnodeAPI {
                         SCLog("Failed to parse snode from: \(rawSnode).")
                         return nil
                     }
-                    return Snode(address: "https://\(address)", port: UInt16(port))
+                    return Snode(address: "https://\(address)", port: UInt16(port), publicKeySet: Snode.KeySet(ed25519Key: ed25519PublicKey, x25519Key: x25519PublicKey))
                 })
                 // randomElement() uses the system's default random generator, which is cryptographically secure
                 return snodePool.randomElement()!
@@ -98,7 +164,8 @@ public enum SnodeAPI {
                     return []
                 }
                 let swarm: Set<Snode> = Set(rawSnodes.compactMap { rawSnode in
-                    guard let address = rawSnode["ip"] as? String, let portAsString = rawSnode["port"] as? String, let port = UInt16(portAsString) else {
+                    guard let address = rawSnode["ip"] as? String, let portAsString = rawSnode["port"] as? String, let port = UInt16(portAsString),
+                        let ed25519PublicKey = rawSnode["pubkey_ed25519"] as? String, let x25519PublicKey = rawSnode["pubkey_x25519"] as? String else {
                         SCLog("Failed to parse snode from: \(rawSnode).")
                         return nil
                     }
@@ -106,7 +173,7 @@ public enum SnodeAPI {
                         SCLog("Failed to parse snode from: \(rawSnode).")
                         return nil
                     }
-                    return Snode(address: "https://\(address)", port: port)
+                    return Snode(address: "https://\(address)", port: port, publicKeySet: Snode.KeySet(ed25519Key: ed25519PublicKey, x25519Key: x25519PublicKey))
                 })
                 swarmCache[hexEncodedPublicKey] = swarm
                 return swarm
@@ -159,7 +226,7 @@ public enum SnodeAPI {
 }
 
 // MARK: Snode Error Handling
-internal extension Promise {
+private extension Promise {
 
     func handlingErrorsIfNeeded(for snode: Snode, associatedWith hexEncodedPublicKey: String) -> Promise<T> {
         return recover(on: SnodeAPI.errorHandlingQueue) { error -> Promise<T> in
