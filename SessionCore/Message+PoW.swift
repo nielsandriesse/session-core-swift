@@ -62,12 +62,12 @@ private extension MutableCollection where Element == Byte {
 
     func increment(by amount: Int) -> Self {
         var result = self
-        var amountRemaininig = amount
+        var amountRemaining = amount
         for index in result.indices.reversed() {
-            guard amountRemaininig > 0 else { break }
-            let sum = Int(result[index]) + amountRemaininig
+            guard amountRemaining > 0 else { break }
+            let sum = Int(result[index]) + amountRemaining
             result[index] = Byte(sum % 256)
-            amountRemaininig = sum / 256
+            amountRemaining = sum / 256
         }
         return result
     }
