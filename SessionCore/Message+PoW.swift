@@ -9,7 +9,7 @@ public extension Message {
     private static let nonceSize = 8
 
     // MARK: Proof of Work Calculation
-    /// See [Bitmessage's Proof of Work Implementation](https://bitmessage.org/wiki/Proof_of_work) for more information.
+    /// Based on [Bitmessage's Proof of Work Implementation](https://bitmessage.org/wiki/Proof_of_work).
     ///
     /// - Note: Exposed for testing purposes.
     static func calculatePow(ttl: UInt64, destination: String, data: String) -> (timestamp: UInt64, base64EncodedNonce: String) {

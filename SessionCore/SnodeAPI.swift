@@ -1,7 +1,7 @@
 import CryptoSwift
 import PromiseKit
 
-// TODO: Make snodePool, swarmCache and powDifficulty thread safe?
+// TODO: Make snodePool, swarmCache and powDifficulty thread safe
 
 /// See [The Session Whitepaper](https://arxiv.org/pdf/2002.04609.pdf) for more information.
 public enum SnodeAPI {
