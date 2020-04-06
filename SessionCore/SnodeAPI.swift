@@ -207,11 +207,7 @@ public enum SnodeAPI {
     }
 
     internal static func dropSnodeIfNeeded(_ snode: Snode, associatedWith hexEncodedPublicKey: String) {
-        let swarm = swarmCache[hexEncodedPublicKey]
-        if var swarm = swarm, let index = swarm.firstIndex(of: snode) {
-            swarm.remove(at: index)
-            swarmCache[hexEncodedPublicKey] = swarm
-        }
+        swarmCache[hexEncodedPublicKey]?.remove(snode)
     }
     
     // MARK: Public API
