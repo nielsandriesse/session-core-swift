@@ -18,10 +18,9 @@ public enum SnodeAPI {
     internal static let workQueue = DispatchQueue(label: "SnodeAPI.workQueue", qos: .userInitiated)
 
     // MARK: Settings
+    private static let failureThreshold: UInt = 2
     private static let minimumSnodeCount: UInt = 2
     private static let targetSnodeCount: UInt = 3
-
-    fileprivate static let failureThreshold: UInt = 2
 
     internal static let maxRetryCount: UInt = 4
     internal static var powDifficulty: UInt = 1
