@@ -50,7 +50,7 @@ public enum HTTP {
                 do {
                     guard JSONSerialization.isValidJSONObject(parameters) else { return seal.reject(Error.invalidJSON) }
                     request.httpBody = try JSONSerialization.data(withJSONObject: parameters, options: [])
-                } catch (let error) {
+                } catch {
                     return seal.reject(error)
                 }
             }

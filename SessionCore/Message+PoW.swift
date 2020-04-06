@@ -4,8 +4,6 @@ import PromiseKit
 // TODO: Clean
 
 public extension Message {
-    /// - Note: Exposed for testing purposes.
-    static let powQueue = DispatchQueue(label: "powQueue")
 
     // MARK: Settings
     private static let nonceSize = 8
@@ -46,7 +44,7 @@ public extension Message {
     func calculatePoW() -> Promise<Message> {
         var copy = self
         return Promise<Message> { seal in
-            Message.powQueue.async {
+            DispatchQueue.global().async {
                 let (timestamp, base64EncodedNonce) = Message.calculatePow(ttl: copy.ttl, destination: copy.destination, data: copy.data)
                 copy.timestamp = timestamp
                 copy.nonce = base64EncodedNonce

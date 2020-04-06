@@ -99,7 +99,7 @@ public enum SnodeAPI {
                             let statusCode = json["status"] as? Int else { return seal.reject(HTTP.Error.invalidJSON) }
                         guard 200...299 ~= statusCode else { return seal.reject(Error.httpRequestFailedAtTargetSnode(verb: .post, url: url, statusCode: UInt(statusCode), json: body)) }
                         seal.fulfill(body)
-                    } catch (let error) {
+                    } catch {
                         seal.reject(error)
                     }
                 }.catch(on: workQueue) { error in
