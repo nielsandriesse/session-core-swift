@@ -1,6 +1,6 @@
 import PromiseKit
 
-internal enum HTTP {
+public enum HTTP {
     private static let urlSession = URLSession(configuration: .ephemeral, delegate: urlSessionDelegate, delegateQueue: nil)
     private static let urlSessionDelegate = URLSessionDelegateImplementation()
 
@@ -17,7 +17,7 @@ internal enum HTTP {
     }
 
     // MARK: Verb
-    internal enum Verb : String {
+    public enum Verb : String {
         case get = "GET"
         case put = "PUT"
         case post = "POST"
@@ -62,11 +62,13 @@ internal enum HTTP {
                     } else {
                         SCLog("\(verb.rawValue) request to \(url) failed.")
                     }
-                    return seal.reject(error ?? Error.generic)
+                    // Override the actual error so that we can correctly catch failed requests in invoke(_:on:associatedWith:parameters)
+                    return seal.reject(Error.httpRequestFailed(verb: verb, url: url, statusCode: 0, json: nil))
                 }
                 if let error = error {
                     SCLog("\(verb.rawValue) request to \(url) failed due to error: \(error).")
-                    return seal.reject(error)
+                    // Override the actual error so that we can correctly catch failed requests in invoke(_:on:associatedWith:parameters)
+                    return seal.reject(Error.httpRequestFailed(verb: verb, url: url, statusCode: 0, json: nil))
                 }
                 let statusCode = UInt(response.statusCode)
                 var json: JSON? = nil

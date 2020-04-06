@@ -6,9 +6,9 @@ import PromiseKit
 /// See [The Session Whitepaper](https://arxiv.org/pdf/2002.04609.pdf) for more information.
 public enum SnodeAPI {
     /// All snode related errors must be handled on this queue to avoid race conditions maintaining e.g. failure counts.
-    fileprivate static let errorHandlingQueue = DispatchQueue(label: "SnodeAPI.errorHandlingQueue")
-    fileprivate static let seedNodePool: Set<String> = [ "http://storage.seed1.loki.network:22023", "http://storage.seed2.loki.network:38157", "http://149.56.148.124:38157" ]
-    fileprivate static var swarmCache: [String:Set<Snode>] = [:]
+    private static let errorHandlingQueue = DispatchQueue(label: "SnodeAPI.errorHandlingQueue")
+    private static let seedNodePool: Set<String> = [ "http://storage.seed1.loki.network:22023", "http://storage.seed2.loki.network:38157", "http://149.56.148.124:38157" ]
+    private static var swarmCache: [String:Set<Snode>] = [:]
 
     /// - Note: Must only be modified from `SnodeAPI.errorHandlingQueue` to avoid race conditions.
     internal static var failureCount: [Snode:UInt] = [:]
@@ -37,6 +37,7 @@ public enum SnodeAPI {
     // MARK: Error
     public enum Error : LocalizedError {
         case clockOutOfSync
+        case httpRequestFailedAtTargetSnode(verb: HTTP.Verb, url: String, statusCode: UInt, json: JSON)
         case insufficientSnodes
         case keyPairGenerationFailed
         case missingSnodeVersion
@@ -48,6 +49,8 @@ public enum SnodeAPI {
 
         public var errorDescription: String? {
             switch self {
+            case .httpRequestFailedAtTargetSnode(let verb, let url, let statusCode, let json):
+                return "\(verb.rawValue) request to \(url) failed at target service node with status code: \(statusCode) (\(getPrettifiedDescription(json)))."
             case .clockOutOfSync: return "Your clock is out of sync with the service node network."
             case .insufficientSnodes: return "Couldn't find enough service nodes to build a path."
             case .keyPairGenerationFailed: return "Couldn't generate a key pair."
@@ -63,15 +66,16 @@ public enum SnodeAPI {
 
     // MARK: Internal API
     internal static func invoke(_ method: Snode.Method, on snode: Snode, associatedWith hexEncodedPublicKey: String, parameters: JSON) -> Promise<JSON> {
-        let url = "\(snode.address):\(snode.port)/storage_rpc/v1"
         SCLog("Invoking \(method.rawValue) on \(snode) with \(getPrettifiedDescription(parameters)).")
+        let url = "\(snode.address):\(snode.port)/storage_rpc/v1"
         let parameters: JSON = [ "method" : method.rawValue, "params" : parameters ]
         switch mode {
         case .onion:
         let (promise, seal) = Promise<JSON>.pending()
+        var guardSnode: Snode!
         workQueue.async {
             buildOnion(around: parameters, targetedAt: snode).done(on: workQueue) { intermediate in
-                let guardSnode = intermediate.guardSnode
+                guardSnode = intermediate.guardSnode
                 let url = "\(guardSnode.address):\(guardSnode.port)/onion_req"
                 let finalEncryptionResult = intermediate.finalEncryptionResult
                 let onion = finalEncryptionResult.ciphertext
@@ -92,7 +96,9 @@ public enum SnodeAPI {
                         let data = Data(try aes.decrypt(ciphertext.bytes))
                         guard let json = try JSONSerialization.jsonObject(with: data, options: []) as? JSON,
                             let bodyAsString = json["body"] as? String, let bodyAsData = bodyAsString.data(using: .utf8),
-                            let body = try JSONSerialization.jsonObject(with: bodyAsData, options: []) as? JSON else { return seal.reject(HTTP.Error.invalidJSON) }
+                            let body = try JSONSerialization.jsonObject(with: bodyAsData, options: []) as? JSON,
+                            let statusCode = json["status"] as? Int else { return seal.reject(HTTP.Error.invalidJSON) }
+                        guard 200...299 ~= statusCode else { return seal.reject(Error.httpRequestFailedAtTargetSnode(verb: .post, url: url, statusCode: UInt(statusCode), json: body)) }
                         seal.fulfill(body)
                     } catch (let error) {
                         seal.reject(error)
@@ -104,9 +110,24 @@ public enum SnodeAPI {
                 seal.reject(error)
             }
         }
-        // TODO: Onion request error handling
+        promise.catch(on: workQueue) { error in // Must be invoked on workQueue
+            guard case HTTP.Error.httpRequestFailed(_, _, _, _) = error else { return }
+            dropPath(containing: guardSnode) // A snode in the path is bad; retry with a different path
+        }
+        let _ = promise.recover(on: errorHandlingQueue) { error -> Promise<JSON> in // Must be invoked on errorHandlingQueue
+            guard case Error.httpRequestFailedAtTargetSnode(_, _, let statusCode, let json) = error else { throw error }
+            try SnodeAPI.handleError(withStatusCode: statusCode, json: json, for: snode, associatedWith: hexEncodedPublicKey)
+            throw error
+        }
         return promise
-        case .plain: return HTTP.execute(.post, url, parameters: parameters).handlingErrorsIfNeeded(for: snode, associatedWith: hexEncodedPublicKey)
+        case .plain:
+        let promise =  HTTP.execute(.post, url, parameters: parameters)
+        let _ = promise.recover(on: errorHandlingQueue) { error -> Promise<JSON> in // Must be invoked on errorHandlingQueue
+            guard case HTTP.Error.httpRequestFailed(_, _, let statusCode, let json) = error else { throw error }
+            try SnodeAPI.handleError(withStatusCode: statusCode, json: json, for: snode, associatedWith: hexEncodedPublicKey)
+            throw error
+        }
+        return promise
         }
     }
 
@@ -223,46 +244,39 @@ public enum SnodeAPI {
             }.retryingIfNeeded(maxRetryCount: maxRetryCount)
         }
     }
-}
 
-// MARK: Snode Error Handling
-private extension Promise {
-
-    func handlingErrorsIfNeeded(for snode: Snode, associatedWith hexEncodedPublicKey: String) -> Promise<T> {
-        return recover(on: SnodeAPI.errorHandlingQueue) { error -> Promise<T> in
-            guard case HTTP.Error.httpRequestFailed(_, _, let statusCode, let json) = error else { throw error }
-            switch statusCode {
-            case 0, 400, 500, 503:
-                // The snode is unreachable
-                let oldFailureCount = SnodeAPI.failureCount[snode] ?? 0
-                let newFailureCount = oldFailureCount + 1
-                SnodeAPI.failureCount[snode] = newFailureCount
-                SCLog("Couldn't reach snode at: \(snode); setting failure count to \(newFailureCount).")
-                if newFailureCount >= SnodeAPI.failureThreshold {
-                    SCLog("Failure threshold reached for: \(snode); dropping it.")
-                    SnodeAPI.dropSnodeIfNeeded(snode, associatedWith: hexEncodedPublicKey) // Remove it from the swarm cache associated with the given public key
-                    SnodeAPI.snodePool.remove(snode) // Remove it from the random snode pool
-                    SnodeAPI.failureCount[snode] = 0
-                }
-            case 406:
-                SCLog("The user's clock is out of sync with the service node network.")
-                throw SnodeAPI.Error.clockOutOfSync
-            case 421:
-                // The snode isn't associated with the given public key anymore
-                SCLog("Invalidating swarm for: \(hexEncodedPublicKey).")
-                SnodeAPI.dropSnodeIfNeeded(snode, associatedWith: hexEncodedPublicKey)
-            case 432:
-                // The proof of work difficulty is too low
-                if let json = json, let powDifficulty = json["difficulty"] as? Int {
-                    SCLog("Setting proof of work difficulty to \(powDifficulty).")
-                    SnodeAPI.powDifficulty = UInt(powDifficulty)
-                } else {
-                    SCLog("Failed to update proof of work difficulty.")
-                }
-                break
-            default: break
+    // MARK: Error Handling
+    private static func handleError(withStatusCode statusCode: UInt, json: JSON?, for snode: Snode, associatedWith hexEncodedPublicKey: String) throws {
+        switch statusCode {
+        case 0, 400, 500, 503:
+            // The snode is unreachable
+            let oldFailureCount = SnodeAPI.failureCount[snode] ?? 0
+            let newFailureCount = oldFailureCount + 1
+            SnodeAPI.failureCount[snode] = newFailureCount
+            SCLog("Couldn't reach snode at: \(snode); setting failure count to \(newFailureCount).")
+            if newFailureCount >= SnodeAPI.failureThreshold {
+                SCLog("Failure threshold reached for: \(snode); dropping it.")
+                SnodeAPI.dropSnodeIfNeeded(snode, associatedWith: hexEncodedPublicKey) // Remove it from the swarm cache associated with the given public key
+                SnodeAPI.snodePool.remove(snode) // Remove it from the random snode pool
+                SnodeAPI.failureCount[snode] = 0
             }
-            throw error
+        case 406:
+            SCLog("The user's clock is out of sync with the service node network.")
+            throw SnodeAPI.Error.clockOutOfSync
+        case 421:
+            // The snode isn't associated with the given public key anymore
+            SCLog("Invalidating swarm for: \(hexEncodedPublicKey).")
+            SnodeAPI.dropSnodeIfNeeded(snode, associatedWith: hexEncodedPublicKey)
+        case 432:
+            // The proof of work difficulty is too low
+            if let json = json, let powDifficulty = json["difficulty"] as? Int {
+                SCLog("Setting proof of work difficulty to \(powDifficulty).")
+                SnodeAPI.powDifficulty = UInt(powDifficulty)
+            } else {
+                SCLog("Failed to update proof of work difficulty.")
+            }
+            break
+        default: break
         }
     }
 }
