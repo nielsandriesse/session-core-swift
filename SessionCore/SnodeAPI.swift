@@ -13,7 +13,7 @@ public enum SnodeAPI {
     /// - Note: Must only be modified from `SnodeAPI.errorHandlingQueue` to avoid race conditions.
     internal static var failureCount: [Snode:UInt] = [:]
     /// - Note: Changing this on the fly is not recommended.
-    internal static var mode: Mode = .onion(layerCount: 1)
+    internal static var mode: Mode = .onion(layerCount: 3)
     internal static var snodePool: Set<Snode> = []
     internal static let workQueue = DispatchQueue(label: "SnodeAPI.workQueue", qos: .userInitiated)
 
