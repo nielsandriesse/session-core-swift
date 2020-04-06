@@ -87,8 +87,9 @@ public enum SnodeAPI {
                     let iv = ivAndCiphertext[0..<Int(ivSize)]
                     let ciphertext = ivAndCiphertext[Int(ivSize)...]
                     do {
+                        // These settings should match those in SnodeAPI+OnionRequestEncryption
                         let gcm = GCM(iv: iv.bytes, tagLength: Int(gcmTagSize), mode: .combined)
-                        let aes = try AES(key: targetSnodeSymmetricKey.bytes, blockMode: gcm, padding: .pkcs7)
+                        let aes = try AES(key: targetSnodeSymmetricKey.bytes, blockMode: gcm, padding: .noPadding)
                         let data = Data(try aes.decrypt(ciphertext.bytes))
                         do {
                             guard let json = try JSONSerialization.jsonObject(with: data, options: []) as? JSON else { return seal.reject(HTTP.Error.invalidJSON) }
@@ -118,10 +119,10 @@ public enum SnodeAPI {
             let seedNode = seedNodePool.randomElement()!
             let url = "\(seedNode)/json_rpc"
             let parameters: JSON = [
-                "method" : "get_service_nodes",
+                "method" : "get_n_service_nodes",
                 "params" : [
                     "active_only" : true,
-                    "fields" : [ "public_ip" : true, "storage_port" : true ]
+                    "fields" : [ "public_ip" : true, "storage_port" : true, "pubkey_ed25519" : true, "pubkey_x25519" : true ]
                 ]
             ]
             return HTTP.execute(.post, url, parameters: parameters).map(on: workQueue) { json in
@@ -159,7 +160,7 @@ public enum SnodeAPI {
                 invoke(.getSwarm, on: randomSnode, associatedWith: hexEncodedPublicKey, parameters: parameters)
             }.map(on: workQueue) { json in
                 // The response returned by invoking get_snodes_for_pubkey on a snode is different from that returned by
-                // invoking get_service_nodes on a seed node, so unfortunately the parsing code below can't easily
+                // invoking get_n_service_nodes on a seed node, so unfortunately the parsing code below can't easily
                 // be unified with the parsing code in getRandomSnode()
                 guard let rawSnodes = json["snodes"] as? [JSON] else {
                     SCLog("Failed to parse snodes from: \(json).")
