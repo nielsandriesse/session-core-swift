@@ -90,14 +90,10 @@ public enum SnodeAPI {
                         let gcm = GCM(iv: iv.bytes, tagLength: Int(gcmTagSize), mode: .combined)
                         let aes = try AES(key: targetSnodeSymmetricKey.bytes, blockMode: gcm, padding: .noPadding)
                         let data = Data(try aes.decrypt(ciphertext.bytes))
-                        do {
-                            guard let json = try JSONSerialization.jsonObject(with: data, options: []) as? JSON,
-                                let bodyAsString = json["body"] as? String, let bodyAsData = bodyAsString.data(using: .utf8),
-                                let body = try JSONSerialization.jsonObject(with: bodyAsData, options: []) as? JSON else { return seal.reject(HTTP.Error.invalidJSON) }
-                            seal.fulfill(body)
-                        } catch (let error) {
-                            seal.reject(error)
-                        }
+                        guard let json = try JSONSerialization.jsonObject(with: data, options: []) as? JSON,
+                            let bodyAsString = json["body"] as? String, let bodyAsData = bodyAsString.data(using: .utf8),
+                            let body = try JSONSerialization.jsonObject(with: bodyAsData, options: []) as? JSON else { return seal.reject(HTTP.Error.invalidJSON) }
+                        seal.fulfill(body)
                     } catch (let error) {
                         seal.reject(error)
                     }
