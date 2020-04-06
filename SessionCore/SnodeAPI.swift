@@ -70,8 +70,7 @@ public enum SnodeAPI {
         case .onion:
         let (promise, seal) = Promise<JSON>.pending()
         workQueue.async {
-            let payload: JSON = [ "method" : method.rawValue, "params" : parameters ]
-            buildOnion(around: payload, targetedAt: snode).done(on: workQueue) { intermediate in
+            buildOnion(around: parameters, targetedAt: snode).done(on: workQueue) { intermediate in
                 let guardSnode = intermediate.guardSnode
                 let url = "\(guardSnode.address):\(guardSnode.port)/onion_req"
                 let finalEncryptionResult = intermediate.finalEncryptionResult
@@ -92,8 +91,10 @@ public enum SnodeAPI {
                         let aes = try AES(key: targetSnodeSymmetricKey.bytes, blockMode: gcm, padding: .noPadding)
                         let data = Data(try aes.decrypt(ciphertext.bytes))
                         do {
-                            guard let json = try JSONSerialization.jsonObject(with: data, options: []) as? JSON else { return seal.reject(HTTP.Error.invalidJSON) }
-                            seal.fulfill(json)
+                            guard let json = try JSONSerialization.jsonObject(with: data, options: []) as? JSON,
+                                let bodyAsString = json["body"] as? String, let bodyAsData = bodyAsString.data(using: .utf8),
+                                let body = try JSONSerialization.jsonObject(with: bodyAsData, options: []) as? JSON else { return seal.reject(HTTP.Error.invalidJSON) }
+                            seal.fulfill(body)
                         } catch (let error) {
                             seal.reject(error)
                         }
