@@ -94,7 +94,7 @@ extension SnodeAPI {
                 return Set(guardSnodes.map { guardSnode in
                     let result = [ guardSnode ] + (0..<(pathSize - 1)).map { _ in
                         // randomElement() uses the system's default random generator, which is cryptographically secure
-                        let pathSnode = unusedSnodes.randomElement()! // Safe because of the minSnodeCount check above
+                        let pathSnode = unusedSnodes.randomElement()! // Safe because of the pathSnodeCount check above
                         unusedSnodes.remove(pathSnode) // All used snodes should be unique
                         return pathSnode
                     }

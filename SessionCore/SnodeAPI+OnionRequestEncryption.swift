@@ -34,8 +34,8 @@ extension SnodeAPI {
         let snodeX25519PublicKey = Data(hex: hexEncodedSnodeX25519PublicKey)
         guard let ephemeralKeyPair = Curve25519.generateKeyPair() else { throw Error.keyPairGenerationFailed }
         guard let ephemeralSharedSecret = Curve25519.generateSharedSecret(fromPublicKey: snodeX25519PublicKey, andKeyPair: ephemeralKeyPair) else { throw Error.sharedSecretGenerationFailed }
-        let key = "LOKI"
-        let symmetricKey = try HMAC(key: key.bytes, variant: .sha256).authenticate(ephemeralSharedSecret.bytes)
+        let salt = "LOKI"
+        let symmetricKey = try HMAC(key: salt.bytes, variant: .sha256).authenticate(ephemeralSharedSecret.bytes)
         let ciphertext = try encrypt(plaintext, usingAESGCMWithSymmetricKey: Data(symmetricKey))
         return (ciphertext, Data(symmetricKey), ephemeralKeyPair.publicKey())
     }
