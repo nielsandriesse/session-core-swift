@@ -10,6 +10,7 @@
 		07CCF4F7D05962A5BEC17C49 /* Pods_SessionCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 24C792A42330D63E5661772B /* Pods_SessionCore.framework */; };
 		747F012FA9DF0868CD656984 /* Pods_SessionCore_SessionCoreTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FC9DEE6F35AF1D537D0966AE /* Pods_SessionCore_SessionCoreTests.framework */; };
 		C3173BB6242DC0D500DD725F /* PromiseKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C3A3BD01242D8F9700237DC0 /* PromiseKit.framework */; };
+		C33E6D8F2442DC8300CA7D26 /* UInt64+BigEndian.swift in Sources */ = {isa = PBXBuildFile; fileRef = C33E6D8E2442DC8300CA7D26 /* UInt64+BigEndian.swift */; };
 		C35F16A0242C69E200B0090A /* Promise+Hashing.swift in Sources */ = {isa = PBXBuildFile; fileRef = C35F169F242C69E200B0090A /* Promise+Hashing.swift */; };
 		C39AFE2F241DDA02009B864E /* SessionCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C39AFE25241DDA02009B864E /* SessionCore.framework */; };
 		C39AFE34241DDA02009B864E /* SessionCoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C39AFE33241DDA02009B864E /* SessionCoreTests.swift */; };
@@ -18,13 +19,12 @@
 		C3B830F82435B09F00072C5C /* HTTP.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3B830F72435B09E00072C5C /* HTTP.swift */; };
 		C3B830FB2436B3B300072C5C /* SnodeAPI+OnionRequestAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3B830F92436B3B300072C5C /* SnodeAPI+OnionRequestAPI.swift */; };
 		C3B830FC2436B3B300072C5C /* SnodeAPI+OnionRequestEncryption.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3B830FA2436B3B300072C5C /* SnodeAPI+OnionRequestEncryption.swift */; };
-		C3C181872428A31300253AB9 /* GeneralUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3C181862428A31300253AB9 /* GeneralUtilities.swift */; };
+		C3C181872428A31300253AB9 /* General.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3C181862428A31300253AB9 /* General.swift */; };
 		C3E3F32C241DF9F600BD217B /* Snode.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3E3F31F241DF9F500BD217B /* Snode.swift */; };
 		C3E3F32F241DF9F600BD217B /* SnodeAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3E3F322241DF9F500BD217B /* SnodeAPI.swift */; };
 		C3E3F330241DF9F600BD217B /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3E3F323241DF9F500BD217B /* Message.swift */; };
 		C3E3F336241E009800BD217B /* Message+PoW.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3E3F333241E009800BD217B /* Message+PoW.swift */; };
 		C3E3F337241E009800BD217B /* Promise+Retrying.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3E3F334241E009800BD217B /* Promise+Retrying.swift */; };
-		C3E3F338241E009800BD217B /* DescriptionUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3E3F335241E009800BD217B /* DescriptionUtilities.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -42,6 +42,7 @@
 		436F9829BC01B77E8DBCA8E6 /* Pods-SessionCore.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SessionCore.release.xcconfig"; path = "Target Support Files/Pods-SessionCore/Pods-SessionCore.release.xcconfig"; sourceTree = "<group>"; };
 		6E2DE1C8017A623592BB98A4 /* Pods-SessionCore-SessionCoreTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SessionCore-SessionCoreTests.release.xcconfig"; path = "Target Support Files/Pods-SessionCore-SessionCoreTests/Pods-SessionCore-SessionCoreTests.release.xcconfig"; sourceTree = "<group>"; };
 		992F5ACA4D930475AFE9D94D /* Pods-SessionCore-SessionCoreTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SessionCore-SessionCoreTests.debug.xcconfig"; path = "Target Support Files/Pods-SessionCore-SessionCoreTests/Pods-SessionCore-SessionCoreTests.debug.xcconfig"; sourceTree = "<group>"; };
+		C33E6D8E2442DC8300CA7D26 /* UInt64+BigEndian.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UInt64+BigEndian.swift"; sourceTree = "<group>"; };
 		C35F169F242C69E200B0090A /* Promise+Hashing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Promise+Hashing.swift"; sourceTree = "<group>"; };
 		C39AFE25241DDA02009B864E /* SessionCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = SessionCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		C39AFE29241DDA02009B864E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -54,13 +55,12 @@
 		C3B830F92436B3B300072C5C /* SnodeAPI+OnionRequestAPI.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "SnodeAPI+OnionRequestAPI.swift"; sourceTree = "<group>"; };
 		C3B830FA2436B3B300072C5C /* SnodeAPI+OnionRequestEncryption.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "SnodeAPI+OnionRequestEncryption.swift"; sourceTree = "<group>"; };
 		C3B830FF2436C3F100072C5C /* _25519.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = _25519.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		C3C181862428A31300253AB9 /* GeneralUtilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralUtilities.swift; sourceTree = "<group>"; };
+		C3C181862428A31300253AB9 /* General.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = General.swift; sourceTree = "<group>"; };
 		C3E3F31F241DF9F500BD217B /* Snode.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Snode.swift; sourceTree = "<group>"; };
 		C3E3F322241DF9F500BD217B /* SnodeAPI.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SnodeAPI.swift; sourceTree = "<group>"; };
 		C3E3F323241DF9F500BD217B /* Message.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Message.swift; sourceTree = "<group>"; };
 		C3E3F333241E009800BD217B /* Message+PoW.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Message+PoW.swift"; sourceTree = "<group>"; };
 		C3E3F334241E009800BD217B /* Promise+Retrying.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Promise+Retrying.swift"; sourceTree = "<group>"; };
-		C3E3F335241E009800BD217B /* DescriptionUtilities.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DescriptionUtilities.swift; sourceTree = "<group>"; };
 		D5AEE0780E956FA48EC022CC /* Pods-SessionCore.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SessionCore.debug.xcconfig"; path = "Target Support Files/Pods-SessionCore/Pods-SessionCore.debug.xcconfig"; sourceTree = "<group>"; };
 		FC9DEE6F35AF1D537D0966AE /* Pods_SessionCore_SessionCoreTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_SessionCore_SessionCoreTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -103,10 +103,10 @@
 		C3173BBA242E075C00DD725F /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
-				C3E3F335241E009800BD217B /* DescriptionUtilities.swift */,
-				C3C181862428A31300253AB9 /* GeneralUtilities.swift */,
+				C3C181862428A31300253AB9 /* General.swift */,
 				C35F169F242C69E200B0090A /* Promise+Hashing.swift */,
 				C3E3F334241E009800BD217B /* Promise+Retrying.swift */,
+				C33E6D8E2442DC8300CA7D26 /* UInt64+BigEndian.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -389,8 +389,8 @@
 				C3B830F82435B09F00072C5C /* HTTP.swift in Sources */,
 				C3E3F330241DF9F600BD217B /* Message.swift in Sources */,
 				C3E3F336241E009800BD217B /* Message+PoW.swift in Sources */,
-				C3C181872428A31300253AB9 /* GeneralUtilities.swift in Sources */,
-				C3E3F338241E009800BD217B /* DescriptionUtilities.swift in Sources */,
+				C33E6D8F2442DC8300CA7D26 /* UInt64+BigEndian.swift in Sources */,
+				C3C181872428A31300253AB9 /* General.swift in Sources */,
 				C3E3F32C241DF9F600BD217B /* Snode.swift in Sources */,
 				C3E3F32F241DF9F600BD217B /* SnodeAPI.swift in Sources */,
 				C3E3F337241E009800BD217B /* Promise+Retrying.swift in Sources */,

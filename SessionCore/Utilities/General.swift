@@ -1,4 +1,6 @@
 
+internal typealias Byte = UInt8
+
 internal func getPrettifiedDescription(_ subject: Any) -> String {
     switch subject {
     case let array as Array<Any>:
@@ -11,4 +13,10 @@ internal func getPrettifiedDescription(_ subject: Any) -> String {
         }.joined(separator: ", ") + " ]"
     default: return String(describing: subject)
     }
+}
+
+public typealias JSON = [String:Any]
+
+internal func SCLog(_ message: String) {
+    print("[Session Core] \(message)")
 }

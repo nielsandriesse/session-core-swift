@@ -62,12 +62,12 @@ public enum HTTP {
                     } else {
                         SCLog("\(verb.rawValue) request to \(url) failed.")
                     }
-                    // Override the actual error so that we can correctly catch failed requests in invoke(_:on:associatedWith:parameters)
+                    // Override the actual error so that we can correctly catch failed requests in invoke(_:on:associatedWith:parameters:)
                     return seal.reject(Error.httpRequestFailed(verb: verb, url: url, statusCode: 0, json: nil))
                 }
                 if let error = error {
                     SCLog("\(verb.rawValue) request to \(url) failed due to error: \(error).")
-                    // Override the actual error so that we can correctly catch failed requests in invoke(_:on:associatedWith:parameters)
+                    // Override the actual error so that we can correctly catch failed requests in invoke(_:on:associatedWith:parameters:)
                     return seal.reject(Error.httpRequestFailed(verb: verb, url: url, statusCode: 0, json: nil))
                 }
                 let statusCode = UInt(response.statusCode)

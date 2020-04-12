@@ -3,10 +3,9 @@ import PromiseKit
 
 internal extension Message {
 
-    // MARK: Proof of Work Calculation
     /// A modified version of [Bitmessage's Proof of Work Implementation](https://bitmessage.org/wiki/Proof_of_work).
     static func calculatePoW(ttl: UInt64, destination: String, data: String) -> (timestamp: UInt64, base64EncodedNonce: String)? {
-        let nonceSize = 8
+        let nonceSize = MemoryLayout<UInt64>.size
         // Get millisecond timestamp
         let timestamp = UInt64(Date().timeIntervalSince1970 * 1000) // timeIntervalSince1970 has millisecond level precision
         // Construct payload
@@ -20,17 +19,17 @@ internal extension Message {
         let denominator = difficulty * (totalSize + (ttlInSeconds * totalSize) / UInt64(UInt16.max))
         let target = numerator / denominator
         // Calculate proof of work
-        var currentValue = UInt64.max
+        var value = UInt64.max
         let payloadHash = payload.sha512()
-        var nonce = [Byte](repeating: 0, count: nonceSize)
-        while currentValue > target {
-            nonce = nonce.adding(1)
-            let hash = (nonce + payloadHash).sha512()
-            guard let value = UInt64([Byte](hash[0..<nonceSize])) else { return nil }
-            currentValue = value
+        var nonce = UInt64(0)
+        while value > target {
+            nonce = nonce &+ 1
+            let hash = (nonce.bigEndianBytes + payloadHash).sha512()
+            guard let newValue = UInt64(fromBigEndianBytes: [Byte](hash[0..<nonceSize])) else { return nil }
+            value = newValue
         }
         // Encode as base 64
-        let base64EncodedNonce = nonce.toBase64()!
+        let base64EncodedNonce = nonce.bigEndianBytes.toBase64()!
         // Return
         return (timestamp, base64EncodedNonce)
     }
@@ -46,36 +45,5 @@ internal extension Message {
                 seal.fulfill(copy)
             }
         }
-    }
-}
-
-// MARK: Convenience
-private typealias Byte = UInt8
-
-private extension UInt64 {
-
-    /// Assumes `bytes` is big endian.
-    init?(_ bytes: [Byte]) {
-        guard bytes.count <= MemoryLayout<UInt64>.size else { return nil }
-        self = bytes.reduce(0) { ($0 << 8) | UInt64($1) }
-    }
-}
-
-private extension MutableCollection where Element == Byte {
-
-    /// Assumes `self` represents a big endian number.
-    ///
-    /// - Note: Can overflow.
-    func adding(_ amount: Int) -> Self {
-        var result = self
-        var amountRemaining = amount
-        for index in result.indices.reversed() {
-            guard amountRemaining > 0 else { break }
-            let sum = Int(result[index]) + amountRemaining
-            let (quotient, remainder) = sum.quotientAndRemainder(dividingBy: 256)
-            result[index] = Byte(remainder)
-            amountRemaining = quotient
-        }
-        return result
     }
 }
