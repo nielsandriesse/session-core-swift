@@ -6,12 +6,10 @@ public enum SnodeAPI {
     private static let seedNodePool: Set<String> = [
         "http://storage.seed1.loki.network:22023", "http://storage.seed2.loki.network:38157", "http://149.56.148.124:38157"
     ]
-
     /// - Note: Must only be modified from `SnodeAPI.queue`.
     private static var swarmCache: [String:Set<Snode>] = [:]
 
     internal static let queue = DispatchQueue(label: "SnodeAPI.queue", qos: .userInitiated)
-
     /// - Note: Must only be modified from `SnodeAPI.queue`.
     internal static var failureCount: [Snode:UInt] = [:]
     /// - Note: Changing this on the fly is not recommended.
@@ -25,7 +23,6 @@ public enum SnodeAPI {
     private static let targetSnodeCount: UInt = 3
 
     internal static let maxRetryCount: UInt = 4
-
     internal static var powDifficulty: UInt = 1
 
     // MARK: Mode
