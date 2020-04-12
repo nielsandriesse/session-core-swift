@@ -3,9 +3,9 @@ import PromiseKit
 // See the "Onion Requests" section of [The Session Whitepaper](https://arxiv.org/pdf/2002.04609.pdf) for more information.
 
 extension SnodeAPI {
-    /// - Note: Must only be modified from `workQueue`.
+    /// - Note: Must only be modified from `SnodeAPI.queue`.
     private static var guardSnodes: Set<Snode> = []
-    /// - Note: Must only be modified from `workQueue`.
+    /// - Note: Must only be modified from `SnodeAPI.queue`.
     private static var paths: Set<Path> = []
 
     private static var reliableSnodePool: Set<Snode> {
@@ -60,8 +60,8 @@ extension SnodeAPI {
             return Promise<Set<Snode>> { $0.fulfill(guardSnodes) }
         } else {
             SCLog("Populating guard snode cache.")
-            return getRandomSnode().then(on: workQueue) { _ -> Promise<Set<Snode>> in // Just used to populate the snode pool
-                var unusedSnodes = reliableSnodePool // Sync on workQueue
+            return getRandomSnode().then(on: queue) { _ -> Promise<Set<Snode>> in // Just used to populate the snode pool
+                var unusedSnodes = reliableSnodePool // Sync on SnodeAPI.queue
                 guard unusedSnodes.count >= guardSnodeCount else { throw Error.insufficientSnodes }
                 func getGuardSnode() -> Promise<Snode> {
                     // randomElement() uses the system's default random generator, which is cryptographically secure
@@ -69,10 +69,10 @@ extension SnodeAPI {
                     unusedSnodes.remove(candidate) // All used snodes should be unique
                     SCLog("Testing guard snode: \(candidate).")
                     // Loop until a reliable guard snode is found
-                    return testSnode(candidate).map(on: workQueue) { candidate }.recover(on: workQueue) { _ in getGuardSnode() }
+                    return testSnode(candidate).map(on: queue) { candidate }.recover(on: queue) { _ in getGuardSnode() }
                 }
                 let promises = (0..<guardSnodeCount).map { _ in getGuardSnode() }
-                return when(fulfilled: promises).map(on: workQueue) { guardSnodes in
+                return when(fulfilled: promises).map(on: queue) { guardSnodes in
                     let guardSnodesAsSet = Set(guardSnodes)
                     SnodeAPI.guardSnodes = guardSnodesAsSet
                     return guardSnodesAsSet
@@ -85,8 +85,8 @@ extension SnodeAPI {
     /// if not enough (reliable) snodes are available.
     private static func buildPaths() -> Promise<Set<Path>> {
         SCLog("Building onion request paths.")
-        return getRandomSnode().then(on: workQueue) { _ -> Promise<Set<Path>> in // Just used to populate the snode pool
-            return getGuardSnodes().map(on: workQueue) { guardSnodes in
+        return getRandomSnode().then(on: queue) { _ -> Promise<Set<Path>> in // Just used to populate the snode pool
+            return getGuardSnodes().map(on: queue) { guardSnodes in
                 var unusedSnodes = reliableSnodePool.subtracting(guardSnodes)
                 let pathSnodeCount = guardSnodeCount * pathSize - guardSnodeCount
                 guard unusedSnodes.count >= pathSnodeCount else { throw Error.insufficientSnodes }
@@ -114,7 +114,7 @@ extension SnodeAPI {
                 seal.fulfill(paths.filter { !$0.contains(snode) }.randomElement()!)
             }
         } else {
-            return buildPaths().map(on: workQueue) { paths in
+            return buildPaths().map(on: queue) { paths in
                 let path = paths.filter { !$0.contains(snode) }.randomElement()!
                 SnodeAPI.paths = paths
                 return path
@@ -132,10 +132,10 @@ extension SnodeAPI {
         var guardSnode: Snode!
         var targetSnodeSymmetricKey: Data! // Needed by invoke(_:on:associatedWith:parameters:) to decrypt the response sent back by the target snode
         var encryptionResult: EncryptionResult!
-        return getPath(excluding: snode).then(on: workQueue) { path -> Promise<EncryptionResult> in
+        return getPath(excluding: snode).then(on: queue) { path -> Promise<EncryptionResult> in
             guardSnode = path.first!
             // Encrypt in reverse order, i.e. the target snode first
-            return encrypt(payload, forTargetSnode: snode).then(on: workQueue) { r -> Promise<EncryptionResult> in
+            return encrypt(payload, forTargetSnode: snode).then(on: queue) { r -> Promise<EncryptionResult> in
                 targetSnodeSymmetricKey = r.symmetricKey
                 // Recursively encrypt the layers of the onion (again in reverse order)
                 encryptionResult = r
@@ -146,7 +146,7 @@ extension SnodeAPI {
                         return Promise<EncryptionResult> { $0.fulfill(encryptionResult) }
                     } else {
                         let lhs = path.removeLast()
-                        return SnodeAPI.encryptHop(from: lhs, to: rhs, using: encryptionResult).then(on: workQueue) { r -> Promise<EncryptionResult> in
+                        return SnodeAPI.encryptHop(from: lhs, to: rhs, using: encryptionResult).then(on: queue) { r -> Promise<EncryptionResult> in
                             encryptionResult = r
                             rhs = lhs
                             return addLayer()
@@ -155,6 +155,6 @@ extension SnodeAPI {
                 }
                 return addLayer()
             }
-        }.map(on: workQueue) { _ in (guardSnode, encryptionResult, targetSnodeSymmetricKey) }
+        }.map(on: queue) { _ in (guardSnode, encryptionResult, targetSnodeSymmetricKey) }
     }
 }

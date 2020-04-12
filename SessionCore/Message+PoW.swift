@@ -1,12 +1,10 @@
 import CryptoSwift
 import PromiseKit
 
-public extension Message {
+internal extension Message {
 
     // MARK: Proof of Work Calculation
     /// A modified version of [Bitmessage's Proof of Work Implementation](https://bitmessage.org/wiki/Proof_of_work).
-    ///
-    /// - Note: Exposed for testing purposes.
     static func calculatePoW(ttl: UInt64, destination: String, data: String) -> (timestamp: UInt64, base64EncodedNonce: String)? {
         let nonceSize = 8
         // Get millisecond timestamp

@@ -16,9 +16,9 @@ class SessionCoreTests : XCTestCase {
         let semaphore = DispatchSemaphore(value: 0)
         var error: Error? = nil
         SnodeAPI.mode = .plain
-        let _ = SnodeAPI.getRandomSnode().retryingIfNeeded(maxRetryCount: maxRetryCount).done(on: SnodeAPI.workQueue) { _ in
+        let _ = SnodeAPI.getRandomSnode().retryingIfNeeded(maxRetryCount: maxRetryCount).done(on: SnodeAPI.queue) { _ in
             semaphore.signal()
-        }.catch(on: SnodeAPI.workQueue) {
+        }.catch(on: SnodeAPI.queue) {
             error = $0; semaphore.signal()
         }
         semaphore.wait()
@@ -29,9 +29,9 @@ class SessionCoreTests : XCTestCase {
         let semaphore = DispatchSemaphore(value: 0)
         var error: Error? = nil
         SnodeAPI.mode = .plain
-        let _ = SnodeAPI.getSwarm(for: testPublicKey).retryingIfNeeded(maxRetryCount: maxRetryCount).done(on: SnodeAPI.workQueue) { _ in
+        let _ = SnodeAPI.getSwarm(for: testPublicKey).retryingIfNeeded(maxRetryCount: maxRetryCount).done(on: SnodeAPI.queue) { _ in
             semaphore.signal()
-        }.catch(on: SnodeAPI.workQueue) {
+        }.catch(on: SnodeAPI.queue) {
             error = $0; semaphore.signal()
         }
         semaphore.wait()
@@ -42,9 +42,9 @@ class SessionCoreTests : XCTestCase {
         let semaphore = DispatchSemaphore(value: 0)
         var error: Error? = nil
         SnodeAPI.mode = .plain
-        let _ = SnodeAPI.getTargetSnodes(for: testPublicKey).retryingIfNeeded(maxRetryCount: maxRetryCount).done(on: SnodeAPI.workQueue) { _ in
+        let _ = SnodeAPI.getTargetSnodes(for: testPublicKey).retryingIfNeeded(maxRetryCount: maxRetryCount).done(on: SnodeAPI.queue) { _ in
             semaphore.signal()
-        }.catch(on: SnodeAPI.workQueue) {
+        }.catch(on: SnodeAPI.queue) {
             error = $0; semaphore.signal()
         }
         semaphore.wait()
@@ -55,9 +55,9 @@ class SessionCoreTests : XCTestCase {
         let semaphore = DispatchSemaphore(value: 0)
         var error: Error? = nil
         SnodeAPI.mode = .plain
-        let _ = SnodeAPI.getMessages(for: testPublicKey).retryingIfNeeded(maxRetryCount: maxRetryCount).done(on: SnodeAPI.workQueue) { _ in
+        let _ = SnodeAPI.getMessages(for: testPublicKey).retryingIfNeeded(maxRetryCount: maxRetryCount).done(on: SnodeAPI.queue) { _ in
             semaphore.signal()
-        }.catch(on: SnodeAPI.workQueue) {
+        }.catch(on: SnodeAPI.queue) {
             error = $0; semaphore.signal()
         }
         semaphore.wait()
@@ -71,22 +71,22 @@ class SessionCoreTests : XCTestCase {
         let data = "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"
         let message = Message(destination: testPublicKey, data: data, ttl: testTTL)
         SnodeAPI.mode = .plain
-        let _ = SnodeAPI.sendMessage(message).done(on: SnodeAPI.workQueue) { promises in // Retrying happens internally
+        let _ = SnodeAPI.sendMessage(message).done(on: SnodeAPI.queue) { promises in // Retrying happens internally
             var isSuccessful = false
             let promiseCount = promises.count
             var errorCount = 0
             promises.forEach { promise in
-                promise.done(on: SnodeAPI.workQueue) { _ in
+                promise.done(on: SnodeAPI.queue) { _ in
                     guard !isSuccessful else { return } // Succeed as soon as the first promise succeeds
                     isSuccessful = true
                     semaphore.signal()
-                }.catch(on: SnodeAPI.workQueue) {
+                }.catch(on: SnodeAPI.queue) {
                     errorCount = errorCount + 1;
                     guard errorCount == promiseCount else { return } // Only error out if all promises failed
                     error = $0; semaphore.signal()
                 }
             }
-        }.catch(on: SnodeAPI.workQueue) {
+        }.catch(on: SnodeAPI.queue) {
             error = $0; semaphore.signal()
         }
         semaphore.wait()
@@ -103,9 +103,9 @@ class SessionCoreTests : XCTestCase {
         let semaphore = DispatchSemaphore(value: 0)
         var error: Error? = nil
         SnodeAPI.mode = .onion(layerCount: 3)
-        let _ = SnodeAPI.getSwarm(for: testPublicKey).retryingIfNeeded(maxRetryCount: maxRetryCount).done(on: SnodeAPI.workQueue) { _ in
+        let _ = SnodeAPI.getSwarm(for: testPublicKey).retryingIfNeeded(maxRetryCount: maxRetryCount).done(on: SnodeAPI.queue) { _ in
             semaphore.signal()
-        }.catch(on: SnodeAPI.workQueue) {
+        }.catch(on: SnodeAPI.queue) {
             error = $0; semaphore.signal()
         }
         semaphore.wait()

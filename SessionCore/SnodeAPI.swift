@@ -1,21 +1,23 @@
 import CryptoSwift
 import PromiseKit
 
-// TODO: Make snodePool, swarmCache and powDifficulty thread safe
-
 /// See [The Session Whitepaper](https://arxiv.org/pdf/2002.04609.pdf) for more information.
 public enum SnodeAPI {
-    /// All snode related errors must be handled on this queue to avoid race conditions maintaining e.g. failure counts.
-    private static let errorHandlingQueue = DispatchQueue(label: "SnodeAPI.errorHandlingQueue")
-    private static let seedNodePool: Set<String> = [ "http://storage.seed1.loki.network:22023", "http://storage.seed2.loki.network:38157", "http://149.56.148.124:38157" ]
+    private static let seedNodePool: Set<String> = [
+        "http://storage.seed1.loki.network:22023", "http://storage.seed2.loki.network:38157", "http://149.56.148.124:38157"
+    ]
+
+    /// - Note: Must only be modified from `SnodeAPI.queue`.
     private static var swarmCache: [String:Set<Snode>] = [:]
 
-    /// - Note: Must only be modified from `SnodeAPI.errorHandlingQueue` to avoid race conditions.
+    internal static let queue = DispatchQueue(label: "SnodeAPI.queue", qos: .userInitiated)
+
+    /// - Note: Must only be modified from `SnodeAPI.queue`.
     internal static var failureCount: [Snode:UInt] = [:]
     /// - Note: Changing this on the fly is not recommended.
     internal static var mode: Mode = .onion(layerCount: 3)
+    /// - Note: Must only be modified from `SnodeAPI.queue`.
     internal static var snodePool: Set<Snode> = []
-    internal static let workQueue = DispatchQueue(label: "SnodeAPI.workQueue", qos: .userInitiated)
 
     // MARK: Settings
     private static let failureThreshold: UInt = 2
@@ -23,13 +25,14 @@ public enum SnodeAPI {
     private static let targetSnodeCount: UInt = 3
 
     internal static let maxRetryCount: UInt = 4
+
     internal static var powDifficulty: UInt = 1
 
     // MARK: Mode
     internal enum Mode {
         /// Use onion requests as described in [The Session Whitepaper](https://arxiv.org/pdf/2002.04609.pdf).
         case onion(layerCount: UInt)
-        /// Use plain HTTP requests. This mode provides no additional privacy.
+        /// Use plain HTTP requests. This mode provides no privacy.
         case plain
     }
 
@@ -72,8 +75,8 @@ public enum SnodeAPI {
         case .onion:
         let (promise, seal) = Promise<JSON>.pending()
         var guardSnode: Snode!
-        workQueue.async {
-            buildOnion(around: parameters, targetedAt: snode).done(on: workQueue) { intermediate in
+        queue.async {
+            buildOnion(around: parameters, targetedAt: snode).done(on: queue) { intermediate in
                 guardSnode = intermediate.guardSnode
                 let url = "\(guardSnode.address):\(guardSnode.port)/onion_req"
                 let finalEncryptionResult = intermediate.finalEncryptionResult
@@ -83,7 +86,7 @@ public enum SnodeAPI {
                     "ephemeral_key" : finalEncryptionResult.ephemeralPublicKey.toHexString()
                 ]
                 let targetSnodeSymmetricKey = intermediate.targetSnodeSymmetricKey
-                HTTP.execute(.post, url, parameters: parameters).done(on: workQueue) { json in
+                HTTP.execute(.post, url, parameters: parameters).done(on: queue) { json in
                     guard let base64EncodedIVAndCiphertext = json["result"] as? String,
                         let ivAndCiphertext = Data(base64Encoded: base64EncodedIVAndCiphertext) else { return seal.reject(HTTP.Error.invalidJSON) }
                     let iv = ivAndCiphertext[0..<Int(ivSize)]
@@ -102,18 +105,18 @@ public enum SnodeAPI {
                     } catch {
                         seal.reject(error)
                     }
-                }.catch(on: workQueue) { error in
+                }.catch(on: queue) { error in
                     seal.reject(error)
                 }
-            }.catch(on: workQueue) { error in
+            }.catch(on: queue) { error in
                 seal.reject(error)
             }
         }
-        promise.catch(on: workQueue) { error in // Must be invoked on workQueue
+        promise.catch(on: queue) { error in
             guard case HTTP.Error.httpRequestFailed(_, _, _, _) = error else { return }
             dropPath(containing: guardSnode) // A snode in the path is bad; retry with a different path
         }
-        let _ = promise.recover(on: errorHandlingQueue) { error -> Promise<JSON> in // Must be invoked on errorHandlingQueue
+        let _ = promise.recover(on: queue) { error -> Promise<JSON> in
             guard case Error.httpRequestFailedAtTargetSnode(_, _, let statusCode, let json) = error else { throw error }
             try SnodeAPI.handleError(withStatusCode: statusCode, json: json, for: snode, associatedWith: hexEncodedPublicKey)
             throw error
@@ -121,7 +124,7 @@ public enum SnodeAPI {
         return promise
         case .plain:
         let promise =  HTTP.execute(.post, url, parameters: parameters)
-        let _ = promise.recover(on: errorHandlingQueue) { error -> Promise<JSON> in // Must be invoked on errorHandlingQueue
+        let _ = promise.recover(on: queue) { error -> Promise<JSON> in
             guard case HTTP.Error.httpRequestFailed(_, _, let statusCode, let json) = error else { throw error }
             try SnodeAPI.handleError(withStatusCode: statusCode, json: json, for: snode, associatedWith: hexEncodedPublicKey)
             throw error
@@ -142,7 +145,7 @@ public enum SnodeAPI {
                     "fields" : [ "public_ip" : true, "storage_port" : true, "pubkey_ed25519" : true, "pubkey_x25519" : true ]
                 ]
             ]
-            return HTTP.execute(.post, url, parameters: parameters).map(on: workQueue) { json in
+            return HTTP.execute(.post, url, parameters: parameters).map(on: queue) { json in
                 guard let intermediate = json["result"] as? JSON,
                     let rawSnodes = intermediate["service_node_states"] as? [JSON] else { throw Error.snodePoolUpdatingFailed }
                 snodePool = Set(rawSnodes.compactMap { rawSnode in
@@ -173,9 +176,9 @@ public enum SnodeAPI {
             return Promise<Set<Snode>> { $0.fulfill(cachedSwarm) }
         } else {
             let parameters: JSON = [ "pubKey" : hexEncodedPublicKey ]
-            return getRandomSnode().then(on: workQueue) { randomSnode in
+            return getRandomSnode().then(on: queue) { randomSnode in
                 invoke(.getSwarm, on: randomSnode, associatedWith: hexEncodedPublicKey, parameters: parameters)
-            }.map(on: workQueue) { json in
+            }.map(on: queue) { json in
                 // The response returned by invoking get_snodes_for_pubkey on a snode is different from that returned by
                 // invoking get_n_service_nodes on a seed node, so unfortunately the parsing code below can't easily
                 // be unified with the parsing code in getRandomSnode()
@@ -203,7 +206,7 @@ public enum SnodeAPI {
 
     internal static func getTargetSnodes(for hexEncodedPublicKey: String) -> Promise<Set<Snode>> {
         // shuffled() uses the system's default random generator, which is cryptographically secure
-        return getSwarm(for: hexEncodedPublicKey).map(on: workQueue) { Set($0.shuffled().prefix(Int(targetSnodeCount))) }
+        return getSwarm(for: hexEncodedPublicKey).map(on: queue) { Set($0.shuffled().prefix(Int(targetSnodeCount))) }
     }
 
     internal static func dropSnodeIfNeeded(_ snode: Snode, associatedWith hexEncodedPublicKey: String) {
@@ -212,31 +215,47 @@ public enum SnodeAPI {
     
     // MARK: Public API
     public static func getMessages(for hexEncodedPublicKey: String) -> Promise<Set<Promise<JSON>>> {
-        return getTargetSnodes(for: hexEncodedPublicKey).mapValues(on: workQueue) { snode in
-            let parameters = [ "pubKey" : hexEncodedPublicKey ]
-            return invoke(.getMessages, on: snode, associatedWith: hexEncodedPublicKey, parameters: parameters)
-        }.map(on: workQueue) { Set($0) }
+        let (promise, seal) = Promise<Set<Promise<JSON>>>.pending()
+        queue.async {
+            getTargetSnodes(for: hexEncodedPublicKey).mapValues(on: queue) { snode in
+                let parameters = [ "pubKey" : hexEncodedPublicKey ]
+                return invoke(.getMessages, on: snode, associatedWith: hexEncodedPublicKey, parameters: parameters)
+            }.map(on: queue) { promises in
+                return Set(promises)
+            }.done(on: queue) { promises in
+                seal.fulfill(promises)
+            }.catch(on: queue) { error in
+                seal.reject(error)
+            }
+        }
+        return promise
     }
 
     public static func sendMessage(_ message: Message) -> Promise<Set<Promise<JSON>>> {
+        let powPromise = message.calculatePoW()
         let destination = message.destination
-        // TODO: Calculate proof of work and get target snodes simultaneously?
-        return message.calculatePoW().then(on: workQueue) { messageWithPoW in
-            return getTargetSnodes(for: destination).map(on: workQueue) { snodes in
-                let parameters = messageWithPoW.toJSON()
-                return Set(snodes.map { snode in
-                    return invoke(.sendMessage, on: snode, associatedWith: destination, parameters: parameters).map(on: workQueue) { json in
-                        if let powDifficulty = json["difficulty"] as? Int {
-                            guard powDifficulty != SnodeAPI.powDifficulty else { return json }
-                            SCLog("Setting proof of work difficulty to \(powDifficulty).")
-                            SnodeAPI.powDifficulty = UInt(powDifficulty)
-                        } else {
-                            SCLog("Failed to update proof of work difficulty from: \(json).")
-                        }
-                        return json
-                    }.retryingIfNeeded(maxRetryCount: maxRetryCount)
-                })
-            }.retryingIfNeeded(maxRetryCount: maxRetryCount)
+        let (getTargetSnodesPromise, seal) = Promise<Set<Snode>>.pending()
+        queue.async {
+            getTargetSnodes(for: destination).retryingIfNeeded(maxRetryCount: maxRetryCount).done(on: queue) { snodes in
+                seal.fulfill(snodes)
+            }.catch(on: queue) { error in
+                seal.reject(error)
+            }
+        }
+        return when(fulfilled: powPromise, getTargetSnodesPromise).map(on: queue) { messageWithPoW, snodes in
+            let parameters = messageWithPoW.toJSON()
+            return Set(snodes.map { snode in
+                return invoke(.sendMessage, on: snode, associatedWith: destination, parameters: parameters).map(on: queue) { json in
+                    if let powDifficulty = json["difficulty"] as? Int {
+                        guard powDifficulty != SnodeAPI.powDifficulty else { return json }
+                        SCLog("Setting proof of work difficulty to \(powDifficulty).")
+                        SnodeAPI.powDifficulty = UInt(powDifficulty)
+                    } else {
+                        SCLog("Failed to update proof of work difficulty from: \(json).")
+                    }
+                    return json
+                }.retryingIfNeeded(maxRetryCount: maxRetryCount)
+            })
         }
     }
 
