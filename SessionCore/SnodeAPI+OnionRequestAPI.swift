@@ -86,7 +86,7 @@ extension SnodeAPI {
     private static func buildPaths() -> Promise<Set<Path>> {
         SCLog("Building onion request paths.")
         return getRandomSnode().then(on: queue) { _ -> Promise<Set<Path>> in // Just used to populate the snode pool
-            return getGuardSnodes().map(on: queue) { guardSnodes in
+            getGuardSnodes().map(on: queue) { guardSnodes in
                 var unusedSnodes = reliableSnodePool.subtracting(guardSnodes)
                 let pathSnodeCount = guardSnodeCount * pathSize - guardSnodeCount
                 guard unusedSnodes.count >= pathSnodeCount else { throw Error.insufficientSnodes }

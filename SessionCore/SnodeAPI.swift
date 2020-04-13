@@ -218,7 +218,7 @@ public enum SnodeAPI {
                 let parameters = [ "pubKey" : hexEncodedPublicKey ]
                 return invoke(.getMessages, on: snode, associatedWith: hexEncodedPublicKey, parameters: parameters)
             }.map(on: queue) { promises in
-                return Set(promises)
+                Set(promises)
             }.done(on: queue) { promises in
                 seal.fulfill(promises)
             }.catch(on: queue) { error in
@@ -233,7 +233,9 @@ public enum SnodeAPI {
         let destination = message.destination
         let (getTargetSnodesPromise, seal) = Promise<Set<Snode>>.pending()
         queue.async {
-            getTargetSnodes(for: destination).retryingIfNeeded(maxRetryCount: maxRetryCount).done(on: queue) { snodes in
+            attempt(maxRetryCount: maxRetryCount, recoveringOn: queue) {
+                getTargetSnodes(for: destination)
+            }.done(on: queue) { snodes in
                 seal.fulfill(snodes)
             }.catch(on: queue) { error in
                 seal.reject(error)
@@ -242,7 +244,9 @@ public enum SnodeAPI {
         return when(fulfilled: powPromise, getTargetSnodesPromise).map(on: queue) { messageWithPoW, snodes in
             let parameters = messageWithPoW.toJSON()
             return Set(snodes.map { snode in
-                return invoke(.sendMessage, on: snode, associatedWith: destination, parameters: parameters).map(on: queue) { json in
+                attempt(maxRetryCount: maxRetryCount, recoveringOn: queue) {
+                    invoke(.sendMessage, on: snode, associatedWith: destination, parameters: parameters)
+                }.map(on: queue) { json in
                     if let powDifficulty = json["difficulty"] as? Int {
                         guard powDifficulty != SnodeAPI.powDifficulty else { return json }
                         SCLog("Setting proof of work difficulty to \(powDifficulty).")
@@ -251,7 +255,7 @@ public enum SnodeAPI {
                         SCLog("Failed to update proof of work difficulty from: \(json).")
                     }
                     return json
-                }.retryingIfNeeded(maxRetryCount: maxRetryCount)
+                }
             })
         }
     }

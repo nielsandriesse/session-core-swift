@@ -1,16 +1,13 @@
 import PromiseKit
 
-internal extension Promise {
-    
-    func retryingIfNeeded(on queue: DispatchQueue = SnodeAPI.queue, maxRetryCount: UInt) -> Promise<T> {
-        var retryCount = 0
-        func retryIfNeeded() -> Promise<T> {
-            return recover(on: queue) { error -> Promise<T> in
-                guard retryCount != maxRetryCount else { throw error }
-                retryCount += 1
-                return retryIfNeeded()
-            }
+internal func attempt<T>(maxRetryCount: UInt, recoveringOn queue: DispatchQueue = .main, body: @escaping () -> Promise<T>) -> Promise<T> {
+    var retryCount = 0
+    func attempt() -> Promise<T> {
+        return body().recover(on: queue) { error -> Promise<T> in
+            guard retryCount < maxRetryCount else { throw error }
+            retryCount += 1
+            return attempt()
         }
-        return retryIfNeeded()
     }
+    return attempt()
 }

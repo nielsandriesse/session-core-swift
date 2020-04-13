@@ -13,7 +13,9 @@ class SessionCoreTests : XCTestCase {
         let semaphore = DispatchSemaphore(value: 0)
         var error: Error? = nil
         SnodeAPI.mode = .plain
-        let _ = SnodeAPI.getRandomSnode().retryingIfNeeded(maxRetryCount: maxRetryCount).done(on: SnodeAPI.queue) { _ in
+        let _ = attempt(maxRetryCount: maxRetryCount, recoveringOn: SnodeAPI.queue) {
+            SnodeAPI.getRandomSnode()
+        }.done(on: SnodeAPI.queue) { _ in
             semaphore.signal()
         }.catch(on: SnodeAPI.queue) {
             error = $0; semaphore.signal()
@@ -26,7 +28,9 @@ class SessionCoreTests : XCTestCase {
         let semaphore = DispatchSemaphore(value: 0)
         var error: Error? = nil
         SnodeAPI.mode = .plain
-        let _ = SnodeAPI.getSwarm(for: testPublicKey).retryingIfNeeded(maxRetryCount: maxRetryCount).done(on: SnodeAPI.queue) { _ in
+        let _ = attempt(maxRetryCount: maxRetryCount, recoveringOn: SnodeAPI.queue) { [testPublicKey = self.testPublicKey] in
+            SnodeAPI.getSwarm(for: testPublicKey)
+        }.done(on: SnodeAPI.queue) { _ in
             semaphore.signal()
         }.catch(on: SnodeAPI.queue) {
             error = $0; semaphore.signal()
@@ -39,7 +43,9 @@ class SessionCoreTests : XCTestCase {
         let semaphore = DispatchSemaphore(value: 0)
         var error: Error? = nil
         SnodeAPI.mode = .plain
-        let _ = SnodeAPI.getTargetSnodes(for: testPublicKey).retryingIfNeeded(maxRetryCount: maxRetryCount).done(on: SnodeAPI.queue) { _ in
+        let _ = attempt(maxRetryCount: maxRetryCount, recoveringOn: SnodeAPI.queue) { [testPublicKey = self.testPublicKey] in
+            SnodeAPI.getTargetSnodes(for: testPublicKey)
+        }.done(on: SnodeAPI.queue) { _ in
             semaphore.signal()
         }.catch(on: SnodeAPI.queue) {
             error = $0; semaphore.signal()
@@ -52,7 +58,9 @@ class SessionCoreTests : XCTestCase {
         let semaphore = DispatchSemaphore(value: 0)
         var error: Error? = nil
         SnodeAPI.mode = .plain
-        let _ = SnodeAPI.getMessages(for: testPublicKey).retryingIfNeeded(maxRetryCount: maxRetryCount).done(on: SnodeAPI.queue) { _ in
+        let _ = attempt(maxRetryCount: maxRetryCount, recoveringOn: SnodeAPI.queue) { [testPublicKey = self.testPublicKey] in
+            SnodeAPI.getMessages(for: testPublicKey)
+        }.done(on: SnodeAPI.queue) { _ in
             semaphore.signal()
         }.catch(on: SnodeAPI.queue) {
             error = $0; semaphore.signal()
@@ -100,7 +108,9 @@ class SessionCoreTests : XCTestCase {
         let semaphore = DispatchSemaphore(value: 0)
         var error: Error? = nil
         SnodeAPI.mode = .onion(layerCount: 3)
-        let _ = SnodeAPI.getSwarm(for: testPublicKey).retryingIfNeeded(maxRetryCount: maxRetryCount).done(on: SnodeAPI.queue) { _ in
+        let _ = attempt(maxRetryCount: maxRetryCount, recoveringOn: SnodeAPI.queue) { [testPublicKey = self.testPublicKey] in
+            SnodeAPI.getSwarm(for: testPublicKey)
+        }.done(on: SnodeAPI.queue) { _ in
             semaphore.signal()
         }.catch(on: SnodeAPI.queue) {
             error = $0; semaphore.signal()
