@@ -4,7 +4,7 @@ import PromiseKit
 /// See [The Session Whitepaper](https://arxiv.org/pdf/2002.04609.pdf) for more information.
 public enum SnodeAPI {
     private static let seedNodePool: Set<String> = [
-        "http://storage.seed1.loki.network:22023", "http://storage.seed2.loki.network:38157", "http://149.56.148.124:38157"
+        "https://storage.seed1.loki.network", "https://storage.seed3.loki.network", "https://public.loki.foundation"
     ]
     /// - Note: Must only be modified from `SnodeAPI.queue`.
     private static var swarmCache: [String:Set<Snode>] = [:]
