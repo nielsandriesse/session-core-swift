@@ -37,7 +37,7 @@ extension SnodeAPI {
         let queue = DispatchQueue.global() // No need to block the work queue for this
         queue.async {
             let url = "\(snode.address):\(snode.port)/get_stats/v1"
-            let timeout: TimeInterval = 6 // Use a shorter timeout for testing
+            let timeout: TimeInterval = 3 // Use a shorter timeout for testing
             HTTP.execute(.get, url, timeout: timeout).done(on: queue) { json in
                 guard let version = json["version"] as? String else { return seal.reject(Error.missingSnodeVersion) }
                 if version >= "2.0.0" {
